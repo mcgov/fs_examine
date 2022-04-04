@@ -40,6 +40,7 @@ pub struct BootSectorRaw {
     // NOTE: ExcessSpace following the header is (2**BytesPerSectorShift)-512
 }
 
+#[derive(Debug)]
 pub struct BootSector {
     pub jumpboot: [u8; 3],
     pub file_system_name: [u8; 8],
@@ -258,6 +259,9 @@ impl BootSector {
                 self.volume_serial_number
             );
             valid = false;
+        }
+        if valid {
+            println!("Header was valid! ... ?")
         }
         valid
     }
