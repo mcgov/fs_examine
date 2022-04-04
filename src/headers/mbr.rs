@@ -56,9 +56,14 @@ pub struct Mbr {
     pub boot_sector_sig: u16,
 }
 
+impl Mbr {
+    pub fn disassemble_bootstrap_sector(&self) {
+        disassemble(&self.bootstrap, 16, 0, self.bootstrap.len());
+    }
+}
+
 impl fmt::Debug for Mbr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        disassemble(&self.bootstrap, 16, 0, self.bootstrap.len());
         write!(
             f,
             "MBR {{ (bootstrap above) disk_sig: {:x?} reserved: {:#x?} paritions: {:#x?} boot sig: {:#x?} }}",

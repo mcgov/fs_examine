@@ -1,6 +1,5 @@
 use std::env;
 use xfat::headers::boot_sector::{BootSector, BootSectorRaw};
-use xfat::headers::disx86::disassemble;
 use xfat::headers::reader::read_header_from_file_unsafe;
 
 use xfat::headers::mbr::{Mbr, MbrRaw};
