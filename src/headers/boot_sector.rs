@@ -1,10 +1,8 @@
+use super::reader::HasRawHeader;
 use byteorder::ByteOrder;
 use byteorder::LittleEndian;
-
-use std::fs::File;
-use std::intrinsics::transmute;
-use std::io::Read;
-use std::mem::size_of;
+use serde::Deserialize;
+use serde_big_array::BigArray;
 
 macro_rules! in_range_inclusive {
     ($low:expr,$val:expr,$high:expr,$type:ty) => {
@@ -12,10 +10,12 @@ macro_rules! in_range_inclusive {
     };
 }
 
+#[derive(Deserialize, Debug)]
 #[repr(packed)]
 pub struct BootSectorRaw {
     jumpboot: [u8; 3],
     file_system_name: [u8; 8],
+    #[serde(with = "BigArray")]
     must_be_zero: [u8; 53],
     partition_offset: [u8; 8],
     volume_length: [u8; 8],
@@ -33,6 +33,7 @@ pub struct BootSectorRaw {
     drive_select: u8,
     percent_in_use: u8,
     reserved: [u8; 7],
+    #[serde(with = "BigArray")]
     boot_code: [u8; 390],
     boot_signature: [u8; 2],
     // NOTE: the Main and Backup Boot Sectors both contain the BytesPerSectorShift field.
@@ -65,8 +66,8 @@ pub struct BootSector {
     // NOTE: ExcessSpace following the header is (2**BytesPerSectorShift)-512
 }
 
-impl BootSector {
-    pub fn from(input: &BootSectorRaw) -> BootSector {
+impl HasRawHeader<BootSector, BootSectorRaw> for BootSector {
+    fn from_raw(input: &BootSectorRaw) -> BootSector {
         let header = BootSector {
             jumpboot: input.jumpboot,
             file_system_name: input.file_system_name,
@@ -95,7 +96,9 @@ impl BootSector {
         header.validate_header();
         return header;
     }
+}
 
+impl BootSector {
     pub fn print_header(&self) {
         println!("jumpboot: {:x?}", self.jumpboot);
         println!(
@@ -130,25 +133,6 @@ impl BootSector {
     }
 }
 
-fn read_raw_header_from_file_unsafe(mut file: File) -> BootSectorRaw {
-    let header: BootSectorRaw = {
-        println!("{}", size_of::<BootSectorRaw>());
-        let mut file_data = [0u8; size_of::<BootSectorRaw>()];
-        file.read_exact(&mut file_data[..]).unwrap();
-        // read the bytes into the struct
-        unsafe { transmute(file_data) }
-    };
-    header
-}
-
-pub fn read_boot_sector_header(file_arg: &str) -> BootSector {
-    let mbr_header: BootSectorRaw;
-    {
-        let mbr_file = File::open(file_arg).unwrap();
-        mbr_header = read_raw_header_from_file_unsafe(mbr_file);
-    }
-    BootSector::from(&mbr_header)
-}
 impl BootSector {
     pub fn validate_header(&self) -> bool {
         let mut valid = true;
