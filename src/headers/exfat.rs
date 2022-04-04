@@ -297,7 +297,7 @@ impl BootSector {
         if numerator % denominator != 0 {
             must_be_at_least += 1;
         }
-        if must_be_at_least >= 0xFFFFFFFF {
+        if must_be_at_least > 0xFFFFFFFF {
             return false;
         }
         // At most (ClusterHeapOffset - FatOffset) / NumberOfFats rounded down to the nearest integer,
@@ -306,7 +306,8 @@ impl BootSector {
             return false;
         }
         let must_be_at_most = (self.cluster_count - self.fat_offset) / self.number_of_fats as u32;
-        return self.fat_length >= must_be_at_least as u32 && self.fat_length <= must_be_at_most;
+        // NOTE: must be at least is range checked above ^
+        in_range_inclusive!(must_be_at_least,self.fat_length, must_be_at_most, u32)
     }
     fn validate_cluster_heap_offset(&self) -> bool {
         //At least FatOffset + FatLength * NumberOfFats, to account for the sectors all the preceding regions consume
@@ -361,13 +362,17 @@ impl BootSector {
     }
 
     fn validate_bytes_per_sector_shift(&self) -> bool {
-        self.bytes_per_sector_shift >= 9 && self.bytes_per_sector_shift <= 12
+        in_range_inclusive!(9, self.bytes_per_sector_shift, 12, u8)
     }
     fn validate_sectors_per_cluster_shift(&self) -> bool {
+        if !self.validate_bytes_per_sector_shift() {
+            // warn, it will fail with the other validation but it's interesting if they aren't both invalid.
+            println!("WARN: bytes per sector shift is out of range and sectors per cluster depends on it's validity.");
+        }
         self.sectors_per_cluster_shift <= (25 - self.bytes_per_sector_shift)
     }
     fn validate_number_of_fats(&self) -> bool {
-        self.number_of_fats > 0 && self.number_of_fats <= 2
+        in_range_inclusive!(1, self.number_of_fats, 2, u8)
     }
     fn validate_drive_select(&self) -> bool {
         //The DriveSelect field shall contain the extended INT 13h drive number,
@@ -394,20 +399,20 @@ impl BootSector {
     }
 
     fn get_flag_active_fat(&self) -> bool {
-        return 0 != self.volume_flags & 0b1;
+        0 != (self.volume_flags & 0b1)
     }
     fn get_flag_dirty(&self) -> bool {
-        return 0 != self.volume_flags & 0b10;
+        0 != (self.volume_flags & 0b10)
     }
     fn get_flag_media_failure(&self) -> bool {
-        return 0 != self.volume_flags & 0b100;
+        0 != (self.volume_flags & 0b100)
     }
     fn get_flag_clear_to_zero(&self) -> bool {
         //The ClearToZero field does not have significant meaning in this specification.
         // great
-        return 0 != self.volume_flags & 0b1000;
+        0 != (self.volume_flags & 0b1000)
     }
     fn get_flag_reserved(&self) -> u16 {
-        return (self.volume_flags & !(0b1111 as u16)) >> 4;
+        (self.volume_flags & (!0b1111 as u16)) >> 4
     }
 }
