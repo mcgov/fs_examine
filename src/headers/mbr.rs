@@ -99,6 +99,7 @@ enum PartitionId {
     AppleUfs = 0xa8,
     AppleBoot = 0xAB,
     AppleRaid = 0xAc,
+    Gpt = 0xEE, // if this is the type we just ignore all the other shit in the MBR.
     WindowsGptSafeMbr = 0xEF,
     LinuxExt3Pache = 0xFD,
 }
