@@ -1,5 +1,6 @@
 use bincode::deserialize;
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Deserializer};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
@@ -30,6 +31,42 @@ pub fn read_header_from_file<
     };
     header
 }
+
+pub fn le_u128_deserialize<'de, D>(d: D) -> Result<u128, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut data = <u128>::deserialize(d)?;
+    data = u128::from_le(data);
+    Ok(data)
+}
+pub fn le_u64_deserialize<'de, D>(d: D) -> Result<u64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut data = <u64>::deserialize(d)?;
+    data = u64::from_le(data);
+    Ok(data)
+}
+
+pub fn le_u32_deserialize<'de, D>(d: D) -> Result<u32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut data = <u32>::deserialize(d)?;
+    data = u32::from_le(data);
+    Ok(data)
+}
+pub fn le_u16_deserialize<'de, D>(d: D) -> Result<u16, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut data = <u16>::deserialize(d)?;
+    data = u16::from_le(data);
+    Ok(data)
+}
+
+
 
 
 pub fn read_header_from_file_unsafe<

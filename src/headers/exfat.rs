@@ -1,7 +1,5 @@
-use super::reader::HasRawHeader;
-use byteorder::ByteOrder;
-use byteorder::LittleEndian;
 use serde::Deserialize;
+use crate::headers::reader::{le_u32_deserialize, le_u16_deserialize, le_u64_deserialize};
 use serde_big_array::BigArray;
 
 macro_rules! in_range_inclusive {
@@ -11,49 +9,29 @@ macro_rules! in_range_inclusive {
 }
 
 #[derive(Deserialize, Debug)]
-#[repr(packed)]
-pub struct BootSectorRaw {
-    jumpboot: [u8; 3],
-    file_system_name: [u8; 8],
-    #[serde(with = "BigArray")]
-    must_be_zero: [u8; 53],
-    partition_offset: [u8; 8],
-    volume_length: [u8; 8],
-    fat_offset: [u8; 4],
-    fat_length: [u8; 4],
-    cluster_heap_offset: [u8; 4],
-    cluster_count: [u8; 4],
-    first_cluster_of_root_directory: [u8; 4],
-    volume_serial_number: [u8; 4],
-    file_system_revision: [u8; 2],
-    volume_flags: [u8; 2],
-    bytes_per_sector_shift: u8,
-    sectors_per_cluster_shift: u8,
-    number_of_fats: u8,
-    drive_select: u8,
-    percent_in_use: u8,
-    reserved: [u8; 7],
-    #[serde(with = "BigArray")]
-    boot_code: [u8; 390],
-    boot_signature: [u8; 2],
-    // NOTE: the Main and Backup Boot Sectors both contain the BytesPerSectorShift field.
-    // NOTE: ExcessSpace following the header is (2**BytesPerSectorShift)-512
-}
-
-#[derive(Debug)]
 pub struct BootSector {
     pub jumpboot: [u8; 3],
     pub file_system_name: [u8; 8],
+    #[serde(with = "BigArray")]
     pub must_be_zero: [u8; 53],
+    #[serde(deserialize_with = "le_u64_deserialize")]
     pub partition_offset: u64,
+    #[serde(deserialize_with = "le_u64_deserialize")]
     pub volume_length: u64,
+    #[serde(deserialize_with = "le_u32_deserialize")]
     pub fat_offset: u32,
+    #[serde(deserialize_with = "le_u32_deserialize")]
     pub fat_length: u32,
+    #[serde(deserialize_with = "le_u32_deserialize")]
     pub cluster_heap_offset: u32,
+    #[serde(deserialize_with = "le_u32_deserialize")]
     pub cluster_count: u32,
+    #[serde(deserialize_with = "le_u32_deserialize")]
     pub first_cluster_of_root_directory: u32,
+    #[serde(deserialize_with = "le_u32_deserialize")]
     pub volume_serial_number: u32,
     pub file_system_revision: [u8; 2],
+    #[serde(deserialize_with = "le_u16_deserialize")]
     pub volume_flags: u16,
     pub bytes_per_sector_shift: u8,
     pub sectors_per_cluster_shift: u8,
@@ -61,42 +39,12 @@ pub struct BootSector {
     pub drive_select: u8,
     pub percent_in_use: u8,
     pub reserved: [u8; 7],
+    #[serde(with = "BigArray")]
     pub boot_code: [u8; 390],
+    #[serde(deserialize_with = "le_u16_deserialize")]
     pub boot_signature: u16,
     // NOTE: the Main and Backup Boot Sectors both contain the BytesPerSectorShift field.
     // NOTE: ExcessSpace following the header is (2**BytesPerSectorShift)-512
-}
-
-impl HasRawHeader<BootSector, BootSectorRaw> for BootSector {
-    fn from_raw(input: &BootSectorRaw) -> BootSector {
-        let header = BootSector {
-            jumpboot: input.jumpboot,
-            file_system_name: input.file_system_name,
-            must_be_zero: input.must_be_zero,
-            partition_offset: LittleEndian::read_u64(&input.partition_offset),
-            volume_length: LittleEndian::read_u64(&input.volume_length),
-            fat_offset: LittleEndian::read_u32(&input.fat_offset),
-            fat_length: LittleEndian::read_u32(&input.fat_length),
-            cluster_heap_offset: LittleEndian::read_u32(&input.cluster_heap_offset),
-            cluster_count: LittleEndian::read_u32(&input.cluster_count),
-            first_cluster_of_root_directory: LittleEndian::read_u32(
-                &input.first_cluster_of_root_directory,
-            ),
-            volume_serial_number: LittleEndian::read_u32(&input.volume_serial_number),
-            file_system_revision: input.file_system_revision,
-            volume_flags: LittleEndian::read_u16(&input.volume_flags),
-            bytes_per_sector_shift: input.bytes_per_sector_shift,
-            sectors_per_cluster_shift: input.sectors_per_cluster_shift,
-            number_of_fats: input.number_of_fats,
-            drive_select: input.drive_select,
-            percent_in_use: input.percent_in_use,
-            reserved: input.reserved,
-            boot_code: input.boot_code,
-            boot_signature: LittleEndian::read_u16(&input.boot_signature),
-        };
-        header.validate_header();
-        return header;
-    }
 }
 
 impl BootSector {
