@@ -1,8 +1,8 @@
 use std::env;
 use xfat::headers::boot_sector::{BootSector, BootSectorRaw};
-use xfat::headers::reader::read_header_from_file_unsafe;
+use xfat::headers::reader::{read_header_from_file_unsafe,read_header_from_file};
 
-use xfat::headers::mbr::{Mbr, MbrRaw};
+use xfat::headers::mbr::{Mbr};
 
 /*
 	let processed_header = read_header_from_file_unsafe::<BootSector, BootSectorRaw>(&file_arg);
@@ -18,7 +18,7 @@ use xfat::headers::mbr::{Mbr, MbrRaw};
 
 fn main() {
 	let file_arg = env::args().nth(1).unwrap();
-	let mbr = read_header_from_file_unsafe::<Mbr, MbrRaw>(&file_arg, 0);
+	let mbr = read_header_from_file::<Mbr>(&file_arg, 0);
 	println!("{:?}", mbr);
 	let main_boot_sector = read_header_from_file_unsafe::<BootSector, BootSectorRaw>(
 		&file_arg,

@@ -4,7 +4,7 @@ use byteorder::ByteOrder;
 use byteorder::LittleEndian;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
-use serde::Deserialize;
+use serde::{Deserialize,Deserializer};
 use serde_big_array::BigArray;
 use std::fmt;
 use std::marker::Copy;
@@ -47,12 +47,15 @@ impl fmt::Debug for MbrPartitionEntryRaw {
         write!(f, "MbrPartitionEntryRaw: (hex) {{ is_active: {:x?} start: {:x?} type: {:x?} last sector: {:x?}last start: {:x?} sectors in partition: {:#x?}", active, self.partition_start,partition_label, self.last_partition_sector,self.lba_partition_start, self.sectors_in_partition)
     }
 }
-
+#[derive(Deserialize)]
 pub struct Mbr {
+    #[serde(with = "BigArray")]
     pub bootstrap: [u8; 440],
     pub opt_disk_sig: [u8; 4],
+    #[serde(deserialize_with = "le_u16_deserialize")]
     pub opt_reserved: u16,
     pub partitions: [MbrPartitionEntry; 4],
+    #[serde(deserialize_with = "le_u16_deserialize")]
     pub boot_sector_sig: u16,
 }
 
@@ -95,14 +98,36 @@ impl HasRawHeader<Mbr, MbrRaw> for Mbr {
     }
 }
 
+#[derive(Deserialize)]
 pub struct MbrPartitionEntry {
     pub attributes: u8,           // Drive attributes (bit 7 set = active or bootable)
     pub partition_start: [u8; 3], // CHS Address of partition start
     pub partition_type: u8,       //Partition type
     pub last_partition_sector: [u8; 3], // CHS address of last partition sector
+    #[serde(deserialize_with = "le_u32_deserialize")]
     pub lba_of_partition_start: u32, // LBA of partition start
+    #[serde(deserialize_with = "le_u32_deserialize")]
     pub sectors_in_partition: u32, // Number of sectors in partition
 }
+
+fn le_u32_deserialize<'de, D>(d: D) -> Result<u32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut data = <u32>::deserialize(d)?;
+    data = u32::from_le(data);
+    Ok(data)
+}
+fn le_u16_deserialize<'de, D>(d: D) -> Result<u16, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut data = <u16>::deserialize(d)?;
+    data = u16::from_le(data);
+    Ok(data)
+}
+
+
 
 impl fmt::Debug for MbrPartitionEntry {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
