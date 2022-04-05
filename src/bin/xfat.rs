@@ -1,8 +1,9 @@
 use std::env;
-use xfat::headers::exfat::boot_sector::{BootSector};
-use xfat::headers::reader::{read_header_from_file};
-use xfat::headers::mbr::{Mbr};
-use xfat::headers::exfat::extended_boot_sector::{ExtendedBootSector};
+use xfat::headers::exfat::boot_sector::BootSector;
+use xfat::headers::exfat::extended_boot_sector::ExtendedBootSector;
+use xfat::headers::gpt::Gpt;
+use xfat::headers::mbr::Mbr;
+use xfat::headers::reader::read_header_from_file;
 /*
 	let processed_header = read_header_from_file_unsafe::<BootSector, BootSectorRaw>(&file_arg);
 	println!("{:x}", processed_header.volume_length);
@@ -25,7 +26,10 @@ fn main() {
 	);
 	main_exfat.print_header();
 	main_exfat.validate_header();
-	let extended_boot_sector = read_header_from_file::<ExtendedBootSector>(&file_arg,512);
-	println!("extended boot sector is valid: {:x?}",extended_boot_sector.section_is_valid(main_exfat.bytes_per_sector_shift));
-
+	let extended_boot_sector = read_header_from_file::<ExtendedBootSector>(&file_arg, 512);
+	println!(
+		"extended boot sector is valid: {:x?}",
+		extended_boot_sector.section_is_valid(main_exfat.bytes_per_sector_shift)
+	);
+	let _a: Gpt; // make one to enable code checks
 }
