@@ -1,6 +1,9 @@
-use crate::headers::reader::{le_u32_deserialize, le_u64_deserialize};
-use serde::Deserialize;
+use crate::headers::reader::{bitfield_fetch, le_u32_deserialize, le_u64_deserialize};
+use byteorder::LittleEndian;
+use serde::de;
+use serde::{Deserialize, Deserializer};
 use serde_big_array::BigArray;
+use std::fmt;
 
 /*
 GPT is also little endian. (according to apple, anyway)
@@ -45,10 +48,63 @@ pub struct PartitionEntry {
     pub first_lba: u64,
     #[serde(deserialize_with = "le_u64_deserialize")]
     pub last_lba: u64,
-    #[serde(deserialize_with = "le_u64_deserialize")]
-    attributes: u64,
+    attributes: Attributes,
     #[serde(with = "BigArray")]
     _name: [u16; 72 / 2],
+}
+#[derive(Debug)]
+pub struct Attributes {
+    pub container: u64,
+    pub platform_essential: bool,
+    pub efi_ignore: bool,
+    pub legacy_bios_bootable: bool,
+    pub reserved: [bool; 47],
+    pub partition_reserved: [bool; 15],
+}
+
+struct AttributesVisitor;
+impl<'de> Deserialize<'de> for Attributes {
+    fn deserialize<D>(deserializer: D) -> Result<Attributes, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let visitor = AttributesVisitor {};
+        let bitfield = deserializer.deserialize_u64(visitor).unwrap();
+        let mut reserved_flags = [false; 47];
+        for i in 0..47 {
+            reserved_flags[i] = bitfield_fetch(bitfield, 0b1000 << i);
+        }
+        let mut partition_reserved = [false; 15];
+        for i in 0..15 {
+            partition_reserved[i] = bitfield_fetch(bitfield, 0x1000000000000 << i);
+        }
+        let a = Attributes {
+            container: bitfield,
+            platform_essential: bitfield_fetch::<u64>(bitfield, 0b1),
+            efi_ignore: bitfield_fetch::<u64>(bitfield, 0b10),
+            legacy_bios_bootable: bitfield_fetch::<u64>(bitfield, 0b100),
+            reserved: reserved_flags,
+            partition_reserved: partition_reserved,
+        };
+
+        Ok(a)
+    }
+}
+
+impl<'de> de::Visitor<'de> for AttributesVisitor {
+    type Value = u64;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "Attribute serializer...")
+    }
+
+    fn visit_u64<E>(self, s: u64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        let v = u64::from_le(s);
+        Ok(v)
+    }
 }
 
 impl PartitionEntry {

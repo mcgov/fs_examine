@@ -1,4 +1,5 @@
 use bincode::deserialize;
+use num_traits::PrimInt;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer};
 use std::fs::File;
@@ -58,4 +59,8 @@ where
     let mut data = <u16>::deserialize(d)?;
     data = u16::from_le(data);
     Ok(data)
+}
+
+pub fn bitfield_fetch<T: Sized + PrimInt>(target: T, bitmask: T) -> bool {
+    return (target & bitmask) == bitmask;
 }
