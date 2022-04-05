@@ -1,4 +1,5 @@
 use xfat::headers::exfat;
+use xfat::headers::gpt::*;
 use xfat::headers::mbr::*;
 use xfat::headers::reader::read_header_from_offset;
 
@@ -27,3 +28,20 @@ fn test_read_mbr_and_boot_sector() {
 }
 
 // NOTE: test for extended boot sector is missing, I need an example of one.
+
+#[test]
+fn test_read_gpt_and_ext4_partition_entries() {
+    let test_file = "tests/gpt_ext4_ntfs.bin";
+    let mbr = read_header_from_offset::<Mbr>(test_file, 0);
+    println!("{:?}", mbr);
+    let gpt = read_header_from_offset::<Gpt>(test_file, 1 * 512); // make one to enable code checks
+    println!("{:x?}", gpt);
+    for i in 0..gpt.gpe_table_entries as u64 {
+        let entry = read_header_from_offset::<PartitionEntry>(
+            test_file,
+            gpt.gpe_table_start * 512 + i * gpt.gpe_table_entry_size as u64,
+        );
+        println!("{}", entry.name());
+        println!("{:?}", entry);
+    }
+}
