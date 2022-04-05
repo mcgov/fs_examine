@@ -1,5 +1,5 @@
+use crate::headers::reader::{le_u16_deserialize, le_u32_deserialize, le_u64_deserialize};
 use serde::Deserialize;
-use crate::headers::reader::{le_u32_deserialize, le_u16_deserialize, le_u64_deserialize};
 use serde_big_array::BigArray;
 
 macro_rules! in_range_inclusive {
@@ -307,7 +307,7 @@ impl BootSector {
         }
         let must_be_at_most = (self.cluster_count - self.fat_offset) / self.number_of_fats as u32;
         // NOTE: must be at least is range checked above ^
-        in_range_inclusive!(must_be_at_least,self.fat_length, must_be_at_most, u32)
+        in_range_inclusive!(must_be_at_least, self.fat_length, must_be_at_most, u32)
     }
     fn validate_cluster_heap_offset(&self) -> bool {
         //At least FatOffset + FatLength * NumberOfFats, to account for the sectors all the preceding regions consume
