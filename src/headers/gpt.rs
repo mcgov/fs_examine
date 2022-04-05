@@ -7,7 +7,7 @@ GPT is also little endian. (according to apple, anyway)
 https://developer.apple.com/library/archive/technotes/tn2166/_index.html#//apple_ref/doc/uid/DTS10003927-CH1-SECTION2
 
 */
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Gpt {
     pub signature: [u8; 8], //	Signature, can be identified by 8 bytes magic "EFI PART" (45h 46h 49h 20h 50h 41h 52h 54h)
     pub revision: [u8; 4],  //	GPT Revision
@@ -37,7 +37,7 @@ pub struct Gpt {
     pub also_reserved: [u8; 512 - 0x5c], // Reserved (should be zeroed) 512-0x5c is 420 btw lmaoooo
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct PartitionEntry {
     pub type_guid: [u8; 16],
     pub unique_guid: [u8; 16],
