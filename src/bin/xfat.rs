@@ -1,7 +1,7 @@
 use std::env;
 use xfat::headers::exfat::boot_sector::BootSector;
 use xfat::headers::exfat::extended_boot_sector::ExtendedBootSector;
-use xfat::headers::gpt::Gpt;
+use xfat::headers::gpt::{Gpt, PartitionEntry};
 use xfat::headers::mbr::Mbr;
 use xfat::headers::reader::read_header_from_file;
 /*
@@ -14,10 +14,7 @@ use xfat::headers::reader::read_header_from_file;
 		0x78,
 		processed_header.boot_code.len(),
 	);
-*/
 
-fn main() {
-	let file_arg = env::args().nth(1).unwrap();
 	let mbr = read_header_from_file::<Mbr>(&file_arg, 0);
 	println!("{:?}", mbr);
 	let main_exfat = read_header_from_file::<BootSector>(
@@ -31,5 +28,14 @@ fn main() {
 		"extended boot sector is valid: {:x?}",
 		extended_boot_sector.section_is_valid(main_exfat.bytes_per_sector_shift)
 	);
-	let _a: Gpt; // make one to enable code checks
+*/
+
+fn main() {
+	let file_arg = env::args().nth(1).unwrap();
+	let mbr = read_header_from_file::<Mbr>(&file_arg, 0);
+	println!("{:?}", mbr);
+	let gpt = read_header_from_file::<Gpt>(&file_arg, 1 as u64 * 512); // make one to enable code checks
+	println!("{:?}", std::str::from_utf8(&gpt.signature[..]));
+	let entry = read_header_from_file::<PartitionEntry>(&file_arg, 2 as u64 * 512);
+	println!("{:?}", entry.name());
 }
