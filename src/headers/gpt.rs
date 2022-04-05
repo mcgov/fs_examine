@@ -1,7 +1,11 @@
 use crate::headers::reader::{le_u32_deserialize, le_u64_deserialize};
 use serde::Deserialize;
 use serde_big_array::BigArray;
+/*
+GPT is also little endian. (according to apple, anyway)
+https://developer.apple.com/library/archive/technotes/tn2166/_index.html#//apple_ref/doc/uid/DTS10003927-CH1-SECTION2
 
+*/
 #[derive(Deserialize)]
 pub struct Gpt {
     signature: [u8; 8], //	Signature, can be identified by 8 bytes magic "EFI PART" (45h 46h 49h 20h 50h 41h 52h 54h)
