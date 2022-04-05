@@ -5,13 +5,11 @@ use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
 
-pub fn read_header_from_sector<Header: Sized + DeserializeOwned>(
+pub fn read_header_from_offset<Header: Sized + DeserializeOwned>(
     file_arg: &str,
-    sector: u64,
-    block_size: u16,
+    offset: u64,
 ) -> Header {
     let header: Header = {
-        let offset = sector * (block_size as u64);
         let mut file = File::open(file_arg).unwrap();
         let _res = file.seek(SeekFrom::Start(offset)).unwrap();
         if _res != offset {

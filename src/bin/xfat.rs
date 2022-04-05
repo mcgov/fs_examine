@@ -3,7 +3,7 @@ use xfat::headers::exfat::boot_sector::BootSector;
 use xfat::headers::exfat::extended_boot_sector::ExtendedBootSector;
 use xfat::headers::gpt::{Gpt, PartitionEntry};
 use xfat::headers::mbr::Mbr;
-use xfat::headers::reader::read_header_from_sector;
+use xfat::headers::reader::read_header_from_offset;
 /*
 	let processed_header = read_header_from_file_unsafe::<BootSector, BootSectorRaw>(&file_arg);
 	println!("{:x}", processed_header.volume_length);
@@ -29,22 +29,21 @@ use xfat::headers::reader::read_header_from_sector;
 		extended_boot_sector.section_is_valid(main_exfat.bytes_per_sector_shift)
 	);
 */
-const BLOCK_SIZE: u16 = 512;
+const BLOCK_SIZE: u64 = 512;
 
 // TODO: reading by blocks was dumb, need to swap back to byte offset,
 // headers aren't all 512 bytes
 
 fn main() {
 	let file_arg = env::args().nth(1).unwrap();
-	let mbr = read_header_from_sector::<Mbr>(&file_arg, 0, BLOCK_SIZE);
+	let mbr = read_header_from_offset::<Mbr>(&file_arg, 0);
 	println!("{:?}", mbr);
-	let gpt = read_header_from_sector::<Gpt>(&file_arg, 1, BLOCK_SIZE); // make one to enable code checks
+	let gpt = read_header_from_offset::<Gpt>(&file_arg, 1 * BLOCK_SIZE); // make one to enable code checks
 	println!("{:x?}", gpt);
-	for i in 0..gpt.gpe_table_entries {
-		let entry = read_header_from_sector::<PartitionEntry>(
+	for i in 0..gpt.gpe_table_entries as u64 {
+		let entry = read_header_from_offset::<PartitionEntry>(
 			&file_arg,
-			gpt.gpe_table_start + i as u64,
-			BLOCK_SIZE,
+			gpt.gpe_table_start * BLOCK_SIZE + i * gpt.gpe_table_entry_size as u64,
 		);
 		println!("{}", entry.name());
 		println!("{:?}", entry);
