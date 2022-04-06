@@ -45,7 +45,7 @@ pub struct MbrPartitionEntry {
     pub partition_type: u8,       //Partition type
     pub last_partition_sector: [u8; 3], // CHS address of last partition sector
     #[serde(deserialize_with = "le_u32_deserialize")]
-    pub lba_of_partition_stabrt: u32, // LBA of partition start
+    pub lba_of_partition_start: u32, // LBA of partition start
     #[serde(deserialize_with = "le_u32_deserialize")]
     pub sectors_in_partition: u32, // Number of sectors in partition
 }
