@@ -121,10 +121,7 @@ lazy_static! {
             uuid!("7FFEC5C9-2D00-49B7-8941-3EA10A5586B7"),
             "Plain dm-crypt partition",
         ),
-        (
-            uuid!("CA7D7CCB-63ED-4C53-861C-1742536059CC"),
-            "LUKS partition47484950 ",
-        ),
+        (uuid!("CA7D7CCB-63ED-4C53-861C-1742536059CC"),"LUKS partition",),
         (uuid!("8DA63339-0007-60C0-C436-083AC8230908"), "Reserved"),
         (uuid!("83BD6B9D-7F41-11DC-BE0B-001560B84F0F"), "Boot partition"),
         (uuid!("516E7CB4-6ECF-11D6-8FF8-00022D09712B"), "BSD disklabel partition"),
