@@ -1,7 +1,6 @@
 use std::env;
-use xfat::headers::exfat::boot_sector::BootSector;
-use xfat::headers::exfat::extended_boot_sector::ExtendedBootSector;
-use xfat::headers::gpt::{Gpt, PartitionEntry};
+use xfat::headers::gpt::partitions::PartitionEntry;
+use xfat::headers::gpt::Gpt;
 use xfat::headers::mbr::Mbr;
 use xfat::headers::reader::read_header_from_offset;
 /*

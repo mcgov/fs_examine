@@ -1,4 +1,5 @@
 use xfat::headers::exfat;
+use xfat::headers::gpt::partitions::PartitionEntry;
 use xfat::headers::gpt::*;
 use xfat::headers::mbr::*;
 use xfat::headers::reader::read_header_from_offset;
