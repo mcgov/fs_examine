@@ -40,12 +40,13 @@ fn main() {
 	println!("{:?}", mbr);
 	let gpt = read_header_from_offset::<Gpt>(&file_arg, 1 * BLOCK_SIZE); // make one to enable code checks
 	println!("{:x?}", gpt);
-	for i in 0..2 as u64 {
+	for i in 0..3 as u64 {
 		let entry = read_header_from_offset::<PartitionEntry>(
 			&file_arg,
 			gpt.gpe_table_start * BLOCK_SIZE + i * gpt.gpe_table_entry_size as u64,
 		);
 		println!("{}", entry.name());
 		println!("{:?}", entry);
+		println!("{:?}", entry.type_to_str());
 	}
 }

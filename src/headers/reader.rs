@@ -5,6 +5,7 @@ use serde::{Deserialize, Deserializer};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
+use uuid::*;
 
 pub fn read_header_from_offset<Header: Sized + DeserializeOwned>(
     file_arg: &str,
@@ -59,6 +60,43 @@ where
     let mut data = <u16>::deserialize(d)?;
     data = u16::from_le(data);
     Ok(data)
+}
+
+pub fn le_uuid_deserialize<'de, D>(d: D) -> Result<Uuid, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    // mixed endian field whyy
+    // going to discover there was a library that already did this at some point
+    let data = <[u8; 16]>::deserialize(d)?;
+    let mut reversed = [0u8; 16];
+    let first = &data[..4];
+    let second = &data[4..6];
+    let third = &data[6..8];
+    let fourth = &data[8..10];
+    let last = &data[10..];
+    let mut counter = 0;
+    for i in first.iter().rev() {
+        reversed[counter] = *i;
+        counter += 1;
+    }
+    for i in second.iter().rev() {
+        reversed[counter] = *i;
+        counter += 1;
+    }
+    for i in third.iter().rev() {
+        reversed[counter] = *i;
+        counter += 1;
+    }
+    for i in fourth.iter() {
+        reversed[counter] = *i;
+        counter += 1;
+    }
+    for i in last.iter() {
+        reversed[counter] = *i;
+        counter += 1;
+    }
+    Ok(uuid::Builder::from_bytes(reversed).build())
 }
 
 pub fn bitfield_fetch<T: Sized + PrimInt>(target: T, bitmask: T) -> bool {
