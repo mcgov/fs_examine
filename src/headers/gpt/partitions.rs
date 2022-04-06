@@ -1,14 +1,8 @@
 use crate::headers::gpt::uuids;
-use crate::headers::reader::{
-    bitfield_fetch, le_u32_deserialize, le_u64_deserialize, le_uuid_deserialize,
-};
-use byteorder::LittleEndian;
-use compiled_uuid::uuid;
-use lazy_static::lazy_static;
+use crate::headers::reader::{bitfield_fetch, le_u64_deserialize, le_uuid_deserialize};
 use serde::de;
 use serde::{Deserialize, Deserializer};
 use serde_big_array::BigArray;
-use std::collections::HashMap;
 use std::fmt;
 use uuid::Uuid;
 
@@ -21,16 +15,16 @@ https://developer.apple.com/library/archive/technotes/tn2166/_index.html#//apple
 #[derive(Deserialize, Debug)]
 pub struct PartitionEntry {
     #[serde(deserialize_with = "le_uuid_deserialize")]
-    pub type_guid: uuid::Uuid,
+    pub type_guid: Uuid,
     #[serde(deserialize_with = "le_uuid_deserialize")]
-    pub unique_guid: uuid::Uuid,
+    pub unique_guid: Uuid,
     #[serde(deserialize_with = "le_u64_deserialize")]
     pub first_lba: u64,
     #[serde(deserialize_with = "le_u64_deserialize")]
     pub last_lba: u64,
     attributes: Attributes,
     #[serde(with = "BigArray")]
-    _name: [u16; 72 / 2],
+    _name: [u16; 72 / 2], // spec is 72 bytes
 }
 pub struct Attributes {
     pub container: u64,

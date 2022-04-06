@@ -3,6 +3,7 @@ use xfat::headers::gpt::partitions::PartitionEntry;
 use xfat::headers::gpt::Gpt;
 use xfat::headers::mbr::Mbr;
 use xfat::headers::reader::read_header_from_offset;
+use xfat::headers::xfs::ondiskhdr::XfsOndiskHeader;
 /*
 	let processed_header = read_header_from_file_unsafe::<BootSector, BootSectorRaw>(&file_arg);
 	println!("{:x}", processed_header.volume_length);
@@ -48,4 +49,5 @@ fn main() {
 		println!("{:?}", entry);
 		println!("{:?}", entry.type_to_str());
 	}
+	let _xfs: XfsOndiskHeader;
 }

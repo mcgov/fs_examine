@@ -44,6 +44,24 @@ where
     Ok(data)
 }
 
+pub fn be_u32_deserialize<'de, D>(d: D) -> Result<u32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut data = <u32>::deserialize(d)?;
+    data = u32::from_be(data);
+    Ok(data)
+}
+
+pub fn be_u64_deserialize<'de, D>(d: D) -> Result<u64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut data = <u64>::deserialize(d)?;
+    data = u64::from_be(data);
+    Ok(data)
+}
+
 pub fn le_u32_deserialize<'de, D>(d: D) -> Result<u32, D::Error>
 where
     D: Deserializer<'de>,
