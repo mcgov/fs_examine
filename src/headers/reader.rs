@@ -80,7 +80,7 @@ where
     Ok(data)
 }
 
-pub fn le_uuid_deserialize<'de, D>(d: D) -> Result<Uuid, D::Error>
+pub fn uuid_deserialize<'de, D>(d: D) -> Result<Uuid, D::Error>
 where
     D: Deserializer<'de>,
 {

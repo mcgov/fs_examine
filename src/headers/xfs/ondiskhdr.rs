@@ -1,4 +1,4 @@
-use crate::headers::reader::{be_u32_deserialize, be_u64_deserialize, le_uuid_deserialize};
+use crate::headers::reader::{be_u32_deserialize, be_u64_deserialize, uuid_deserialize};
 use serde::Deserialize;
 use uuid::Uuid;
 /*
@@ -18,7 +18,7 @@ pub struct XfsOndiskHeader {
     pub magic: u32,
     #[serde(deserialize_with = "be_u32_deserialize")]
     pub crc: u32,
-    #[serde(deserialize_with = "le_uuid_deserialize")]
+    #[serde(deserialize_with = "uuid_deserialize")]
     pub uuid: Uuid,
     #[serde(deserialize_with = "be_u64_deserialize")]
     pub owner: u64,

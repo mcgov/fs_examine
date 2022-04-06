@@ -1,5 +1,5 @@
 use crate::headers::gpt::uuids;
-use crate::headers::reader::{bitfield_fetch, le_u64_deserialize, le_uuid_deserialize};
+use crate::headers::reader::{bitfield_fetch, le_u64_deserialize, uuid_deserialize};
 use serde::de;
 use serde::{Deserialize, Deserializer};
 use serde_big_array::BigArray;
@@ -14,9 +14,9 @@ https://developer.apple.com/library/archive/technotes/tn2166/_index.html#//apple
 
 #[derive(Deserialize, Debug)]
 pub struct PartitionEntry {
-    #[serde(deserialize_with = "le_uuid_deserialize")]
+    #[serde(deserialize_with = "uuid_deserialize")]
     pub type_guid: Uuid,
-    #[serde(deserialize_with = "le_uuid_deserialize")]
+    #[serde(deserialize_with = "uuid_deserialize")]
     pub unique_guid: Uuid,
     #[serde(deserialize_with = "le_u64_deserialize")]
     pub first_lba: u64,
