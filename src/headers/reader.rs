@@ -15,7 +15,7 @@ pub fn read_header_from_offset<Header: Sized + DeserializeOwned>(
         let mut file = File::open(file_arg).unwrap();
         let _res = file.seek(SeekFrom::Start(offset)).unwrap();
         if _res != offset {
-            panic!("Failed to seek to offset\n"); //shitty error msg i'm tired
+            panic!("Failed to seek to offset\n");
         }
         let size = size_of::<Header>();
         let mut file_data: Vec<u8> = vec![0; size];
