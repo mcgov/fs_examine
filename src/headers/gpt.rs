@@ -52,7 +52,6 @@ pub struct PartitionEntry {
     #[serde(with = "BigArray")]
     _name: [u16; 72 / 2],
 }
-#[derive(Debug)]
 pub struct Attributes {
     pub container: u64,
     pub platform_essential: bool,
@@ -60,6 +59,39 @@ pub struct Attributes {
     pub legacy_bios_bootable: bool,
     pub reserved: [bool; 47],
     pub partition_reserved: [bool; 15],
+}
+
+impl fmt::Debug for Attributes {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut reserved_all_zero = true;
+        let mut partition_reserved_all_zero = true;
+        for i in 0..self.reserved.len() {
+            if self.reserved[i] == true {
+                reserved_all_zero = false;
+            }
+        }
+        for i in 0..self.partition_reserved.len() {
+            if self.partition_reserved[i] == true {
+                partition_reserved_all_zero = false;
+            }
+        }
+        let mut output_string: String = format!(
+            "GpeAttributes: is_platform_essential:{:?} efi_ignore_parition:{:?} is_legacy_bios_bootable:{:?} ",
+            self.platform_essential, self.efi_ignore, self.legacy_bios_bootable
+        );
+        if reserved_all_zero {
+            output_string += " reserved: [0;47]"
+        } else {
+            output_string += format!(" {:?}", self.reserved).as_str();
+        }
+        if partition_reserved_all_zero {
+            output_string += " parition_reserved: [0;15]"
+        } else {
+            output_string += format!(" {:?}", self.partition_reserved).as_str();
+        }
+
+        write!(f, "{}", output_string)
+    }
 }
 
 struct AttributesVisitor;
