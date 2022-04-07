@@ -1,5 +1,6 @@
 pub mod disx86;
 pub mod exfat;
+pub mod ext4;
 pub mod gpt;
 pub mod mbr;
 pub mod reader;

@@ -1,5 +1,5 @@
 use crate::headers::gpt::uuids;
-use crate::headers::reader::{bitfield_fetch, le_u64_deserialize, uuid_deserialize};
+use crate::headers::reader::{bitfield_fetch, uuid_deserialize};
 use serde::de;
 use serde::{Deserialize, Deserializer};
 use serde_big_array::BigArray;
@@ -18,9 +18,7 @@ pub struct PartitionEntry {
     pub type_guid: Uuid,
     #[serde(deserialize_with = "uuid_deserialize")]
     pub unique_guid: Uuid,
-    #[serde(deserialize_with = "le_u64_deserialize")]
     pub first_lba: u64,
-    #[serde(deserialize_with = "le_u64_deserialize")]
     pub last_lba: u64,
     attributes: Attributes,
     #[serde(with = "BigArray")]

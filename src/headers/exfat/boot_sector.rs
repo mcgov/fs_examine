@@ -1,4 +1,3 @@
-use crate::headers::reader::{le_u16_deserialize, le_u32_deserialize, le_u64_deserialize};
 use serde::Deserialize;
 use serde_big_array::BigArray;
 
@@ -14,24 +13,15 @@ pub struct BootSector {
     pub file_system_name: [u8; 8],
     #[serde(with = "BigArray")]
     pub must_be_zero: [u8; 53],
-    #[serde(deserialize_with = "le_u64_deserialize")]
     pub partition_offset: u64,
-    #[serde(deserialize_with = "le_u64_deserialize")]
     pub volume_length: u64,
-    #[serde(deserialize_with = "le_u32_deserialize")]
     pub fat_offset: u32,
-    #[serde(deserialize_with = "le_u32_deserialize")]
     pub fat_length: u32,
-    #[serde(deserialize_with = "le_u32_deserialize")]
     pub cluster_heap_offset: u32,
-    #[serde(deserialize_with = "le_u32_deserialize")]
     pub cluster_count: u32,
-    #[serde(deserialize_with = "le_u32_deserialize")]
     pub first_cluster_of_root_directory: u32,
-    #[serde(deserialize_with = "le_u32_deserialize")]
     pub volume_serial_number: u32,
     pub file_system_revision: [u8; 2],
-    #[serde(deserialize_with = "le_u16_deserialize")]
     pub volume_flags: u16,
     pub bytes_per_sector_shift: u8,
     pub sectors_per_cluster_shift: u8,
@@ -41,7 +31,6 @@ pub struct BootSector {
     pub reserved: [u8; 7],
     #[serde(with = "BigArray")]
     pub boot_code: [u8; 390],
-    #[serde(deserialize_with = "le_u16_deserialize")]
     pub boot_signature: u16,
     // NOTE: the Main and Backup Boot Sectors both contain the BytesPerSectorShift field.
     // NOTE: ExcessSpace following the header is (2**BytesPerSectorShift)-512

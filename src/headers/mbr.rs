@@ -1,5 +1,4 @@
 use crate::headers::disx86::disassemble;
-use crate::headers::reader::{le_u16_deserialize, le_u32_deserialize};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use serde::Deserialize;
@@ -12,10 +11,8 @@ pub struct Mbr {
     #[serde(with = "BigArray")]
     pub bootstrap: [u8; 440],
     pub opt_disk_sig: [u8; 4],
-    #[serde(deserialize_with = "le_u16_deserialize")]
     pub opt_reserved: u16,
     pub partitions: [MbrPartitionEntry; 4],
-    #[serde(deserialize_with = "le_u16_deserialize")]
     pub boot_sector_sig: u16,
 }
 
@@ -44,9 +41,7 @@ pub struct MbrPartitionEntry {
     pub partition_start: [u8; 3], // CHS Address of partition start
     pub partition_type: u8,       //Partition type
     pub last_partition_sector: [u8; 3], // CHS address of last partition sector
-    #[serde(deserialize_with = "le_u32_deserialize")]
     pub lba_of_partition_start: u32, // LBA of partition start
-    #[serde(deserialize_with = "le_u32_deserialize")]
     pub sectors_in_partition: u32, // Number of sectors in partition
 }
 

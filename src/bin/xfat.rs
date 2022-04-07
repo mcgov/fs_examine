@@ -1,9 +1,10 @@
 use std::env;
+use xfat::headers::ext4::superblock::Superblock;
 use xfat::headers::gpt::partitions::PartitionEntry;
 use xfat::headers::gpt::Gpt;
 use xfat::headers::mbr::Mbr;
 use xfat::headers::reader::read_header_from_offset;
-use xfat::headers::xfs::ondiskhdr::XfsOndiskHeader;
+//use xfat::headers::xfs::ondiskhdr::XfsOndiskHeader;
 /*
 	let processed_header = read_header_from_file_unsafe::<BootSector, BootSectorRaw>(&file_arg);
 	println!("{:x}", processed_header.volume_length);
@@ -40,14 +41,19 @@ fn main() {
 	println!("{:?}", mbr);
 	let gpt = read_header_from_offset::<Gpt>(&file_arg, 1 * BLOCK_SIZE); // make one to enable code checks
 	println!("{:x?}", gpt);
-	for i in 0..3 as u64 {
+	for i in 0..7 as u64 {
 		let entry = read_header_from_offset::<PartitionEntry>(
 			&file_arg,
 			gpt.gpe_table_start * BLOCK_SIZE + i * gpt.gpe_table_entry_size as u64,
 		);
 		println!("{}", entry.name());
-		println!("{:?}", entry);
+		println!("{:x?}", entry);
 		println!("{:?}", entry.type_to_str());
 	}
-	let _xfs: XfsOndiskHeader;
+	let ext4 =
+		read_header_from_offset::<PartitionEntry>(&file_arg, gpt.gpe_table_start * BLOCK_SIZE);
+
+	let superblock =
+		read_header_from_offset::<Superblock>(&file_arg, 1024 + ext4.first_lba * BLOCK_SIZE); //ext4 pads 1024 bytes ahead of block0
+	println!("{:x?}", superblock);
 }
