@@ -32,9 +32,6 @@ use xfat::headers::reader::read_header_from_offset;
 */
 const BLOCK_SIZE: u64 = 512;
 
-// TODO: reading by blocks was dumb, need to swap back to byte offset,
-// headers aren't all 512 bytes
-
 fn main() {
 	let file_arg = env::args().nth(1).unwrap();
 	let mbr = read_header_from_offset::<Mbr>(&file_arg, 0);
@@ -56,4 +53,7 @@ fn main() {
 	let superblock =
 		read_header_from_offset::<Superblock>(&file_arg, 1024 + ext4.first_lba * BLOCK_SIZE); //ext4 pads 1024 bytes ahead of block0
 	println!("{:x?}", superblock);
+	println!("volume name: {}", superblock.volume_name());
+	println!("volume name: {}", superblock.mount_opts());
+	println!("volume name: {}", superblock.last_mounted());
 }
