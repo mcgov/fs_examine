@@ -1,6 +1,9 @@
 use crate::headers::reader::{bitfield_fetch, uuid_deserialize};
+use nameof;
+use num_traits::PrimInt;
 use serde::Deserialize;
 use serde_big_array::BigArray;
+use std::fmt::{Debug, UpperHex};
 use uuid::Uuid;
 
 // source of truth: https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout
@@ -147,13 +150,19 @@ impl Superblock {
         bitfield_fetch(self.feature_incompat, feature_bitflags::USES_FLEX_BG)
     }
     pub fn uses_ext_attr(&self) -> bool {
-        bitfield_fetch(self.feature_incompat, feature_bitflags::USES_EA_INODE)
+        bitfield_fetch(self.feature_compat, opt_feature_bitflags::COMPAT_EXT_ATTR)
     }
     pub fn uses_mmp(&self) -> bool {
         bitfield_fetch(self.feature_incompat, feature_bitflags::USES_MMP)
     }
     pub fn uses_journal(&self) -> bool {
-        bitfield_fetch(self.feature_incompat, feature_bitflags::USES_JOURNAL_DEV)
+        bitfield_fetch(
+            self.feature_compat,
+            opt_feature_bitflags::COMPAT_HAS_JOURNAL,
+        )
+    }
+    pub fn flex_bg_size(&self) -> u64 {
+        1 << self.log_groups_per_flex
     }
 }
 

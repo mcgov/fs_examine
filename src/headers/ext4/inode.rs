@@ -36,9 +36,10 @@ pub struct Inode {
 
 impl Inode {
     pub fn print_times(&self) {
-        for time in [self.atime, self.crtime, self.mtime, self.dtime] {
-            println!("{}", timestamp_to_string(time as u64));
-        }
+        println!("accessed: {:#?}", timestamp_to_string(self.atime as u64));
+        println!("created: {:#?}", timestamp_to_string(self.crtime as u64));
+        println!("modified: {:#?}", timestamp_to_string(self.mtime as u64));
+        println!("deleted: {:#?}", timestamp_to_string(self.dtime as u64));
     }
 }
 
