@@ -46,8 +46,8 @@ pub struct Superblock {
     pub feature_incompat: u32,
     pub feature_ro_compat: u32, //	Readonly-compatible feature set. If the kernel doesn't understand one of these bits, it can still mount read-only, but e2fsck will refuse to modify the filesystem. Any of:
     #[serde(deserialize_with = "uuid_deserialize")]
-    pub uuid: Uuid, //	128-bit UUID for volume.char
-    pub volume_name: [u8; 16],  // Volume label.char
+    pub uuid: Uuid, //	128-bit UUID for volume
+    pub volume_name: [u8; 16],  // Volume label
     #[serde(with = "BigArray")]
     pub last_mounted: [u8; 64], //Directory where filesystem was last mounted.
     pub algorithm_usage_bitmap: u32, //	For compression (Not used in e2fsprogs/Linux)
@@ -121,5 +121,11 @@ impl Superblock {
     }
     pub fn last_mounted(&self) -> String {
         std::string::String::from_utf8(self.last_mounted.to_vec()).unwrap()
+    }
+    pub fn first_error_func(&self) -> String {
+        std::string::String::from_utf8(self.first_error_func.to_vec()).unwrap()
+    }
+    pub fn last_error_func(&self) -> String {
+        std::string::String::from_utf8(self.last_error_func.to_vec()).unwrap()
     }
 }
