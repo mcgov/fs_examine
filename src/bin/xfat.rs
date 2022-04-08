@@ -56,4 +56,6 @@ fn main() {
 	println!("volume name: {}", superblock.volume_name());
 	println!("volume name: {}", superblock.mount_opts());
 	println!("volume name: {}", superblock.last_mounted());
+	println!("first_error: {}", superblock.first_error_func());
+	println!("last_error : {}", superblock.last_error_func());
 }
