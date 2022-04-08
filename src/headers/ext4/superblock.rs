@@ -3,6 +3,7 @@ use serde::Deserialize;
 use serde_big_array::BigArray;
 use uuid::Uuid;
 
+// wow this block sure is big buddy
 #[derive(Deserialize, Debug)]
 pub struct Superblock {
     pub inodes_count: u32,         //Total number of inodes in file system
