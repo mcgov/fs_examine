@@ -1,4 +1,4 @@
-use crate::headers::reader::{bitfield_fetch, uuid_deserialize};
+use crate::headers::reader::uuid_deserialize;
 use serde::Deserialize;
 use serde_big_array::BigArray;
 use uuid::Uuid;
@@ -143,7 +143,7 @@ impl Superblock {
 
 //(0x[0-9]+)(.*)\(([A-Z0-9_]+)\)
 //const $3 : u32 = $1; //$2
-pub mod HashAlgorithmBitFlags {
+pub mod hashalgo_bitflags {
     // Default hash algorithm to use for directory hashes. One of:
     pub const LEGACY: u8 = 0x0; // 	Legacy.
     pub const HALF_MD4: u8 = 0x1; // 	Half MD4.
@@ -153,7 +153,7 @@ pub mod HashAlgorithmBitFlags {
     pub const TEA_UNSIGNED: u8 = 0x5;
 }
 
-pub mod CompatBitFlags {
+pub mod compat_bitflags {
     //Compatible feature set flags. Kernel can still read/write this fs even if it doesn't understand a flag; e2fsck will not attempt to fix a filesystem with any unknown COMPAT flags. Any of:
     pub const COMPAT_DIR_PREALLOC: u32 = 0x1; // Directory preallocation (COMPAT_DIR_PREALLOC).
     pub const COMPAT_IMAGIC_INODES: u32 = 0x2; //"imagic inodes". Used by AFS to indicate inodes that are not linked into the directory namespace. Inodes marked with this flag will not be added to lost+found by e2fsck. (COMPAT_IMAGIC_INODES).
@@ -166,7 +166,7 @@ pub mod CompatBitFlags {
     pub const COMPAT_EXCLUDE_BITMAP: u32 = 0x100; // 	"Exclude bitmap". Seems to be used to indicate the presence of snapshot-related exclude bitmaps? Not defined in kernel or used in e2fsprogs. (COMPAT_EXCLUDE_BITMAP).
     pub const COMPAT_SPARSE_SUPER2: u32 = 0x200; // 	Sparse Super Block, v2. If this flag is set, the SB field s_backup_bgs points to the two block groups that contain backup superblocks. (COMPAT_SPARSE_SUPER2).
 }
-pub mod ReadOnlyBitFlags {
+pub mod readonly_bitflags {
     // Readonly-compatible feature set. If the kernel doesn't understand one of these bits, it can still mount read-only, but e2fsck will refuse to modify the filesystem. Any of:
     pub const RO_COMPAT_SPARSE_SUPER: u32 = 0x1; // 	Sparse superblocks. See the earlier discussion of this feature. .
     pub const RO_COMPAT_LARGE_FILE: u32 = 0x2; // 	Allow storing files larger than 2GiB .
@@ -184,7 +184,7 @@ pub mod ReadOnlyBitFlags {
     pub const RO_COMPAT_PROJECT: u32 = 0x2000; // 	Filesystem tracks project quotas.
 }
 
-pub mod IncompatBitFlags {
+pub mod incompat_bitflags {
     //Incompatible feature set. If the kernel or e2fsck doesn't understand one of these bits, it will refuse to mount or attempt to repair the filesystem. Any of:
     pub const INCOMPAT_COMPRESSION: u32 = 0x1; // 	Compression. Not implemented. .
     pub const INCOMPAT_FILETYPE: u32 = 0x2; // 	Directory entries record the file type. See ext4_dir_entry_2 below. .
@@ -203,7 +203,7 @@ pub mod IncompatBitFlags {
     pub const INCOMPAT_ENCRYPT: u32 = 0x10000; // 	Encrypted inodes are present on the filesystem .
 }
 
-pub mod Ext4MountBitFlags {
+pub mod ext4mount_bitflags {
     //Default mount options. Any of:
     pub const EXT4_DEFM_DEBUG: u32 = 0x0001; // 	Print debugging info upon mount.
     pub const EXT4_DEFM_BSDGROUPS: u32 = 0x0002; // 	New files take the gid of the containing directory (instead of the fsgid of the current process).
@@ -219,7 +219,7 @@ pub mod Ext4MountBitFlags {
     pub const EXT4_DEFM_NODELALLOC: u32 = 0x0800; // 	Disable delayed allocation.
 }
 
-pub mod CipherFlags {
+pub mod cipher_bitflags {
     //Encryption algorithms in use. There can be up to four algorithms in use at any time; valid algorithm codes are given below:
     pub const ENCRYPTION_MODE_INVALID: u32 = 0; // 	Invalid algorithm .
     pub const ENCRYPTION_MODE_AES_256_XTS: u32 = 1; // 	256-bit AES in XTS mode .
