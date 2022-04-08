@@ -1,4 +1,4 @@
-use crate::headers::reader::{bitfield_fetch, uuid_deserialize};
+use crate::headers::reader::{bitfield_fetch, timestamp_to_string, uuid_deserialize};
 use nameof;
 use num_traits::PrimInt;
 use serde::Deserialize;
@@ -163,6 +163,28 @@ impl Superblock {
     }
     pub fn flex_bg_size(&self) -> u64 {
         1 << self.log_groups_per_flex
+    }
+
+    pub fn debug_print_some_stuf(&self) {
+        println!("{:x?}", self);
+        println!("volume name: {}", self.volume_name());
+        println!("mount opts: {}", self.mount_opts());
+        println!("last mounted: {}", self.last_mounted());
+        println!("first_error: {}", self.first_error_func());
+        println!(
+            "last check : {}",
+            timestamp_to_string(self.last_check as u64)
+        );
+        println!("64bit_support : {}", self.uses_64bit());
+        println!("Ext Attrs : {}", self.uses_ext_attr());
+        println!("Flex BG : {}", self.uses_flex_bg());
+        println!("MMP : {}", self.uses_mmp());
+        println!("Journal (internal) : {}", self.uses_journal());
+        println!(
+            "FlexBG Size: val: {} size 0x{:X?}",
+            self.log_groups_per_flex,
+            self.flex_bg_size()
+        );
     }
 }
 
