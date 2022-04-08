@@ -1,9 +1,10 @@
+use ::xfat::headers::ext4;
 use std::env;
 use xfat::headers::ext4::superblock::Superblock;
 use xfat::headers::gpt::partitions::PartitionEntry;
 use xfat::headers::gpt::Gpt;
 use xfat::headers::mbr::Mbr;
-use xfat::headers::reader::read_header_from_offset;
+use xfat::headers::reader::*;
 //use xfat::headers::xfs::ondiskhdr::XfsOndiskHeader;
 /*
 	let processed_header = read_header_from_file_unsafe::<BootSector, BootSectorRaw>(&file_arg);
@@ -57,5 +58,23 @@ fn main() {
 	println!("volume name: {}", superblock.mount_opts());
 	println!("volume name: {}", superblock.last_mounted());
 	println!("first_error: {}", superblock.first_error_func());
-	println!("last_error : {}", superblock.last_error_func());
+	println!(
+		"last_error : {}",
+		timestamp_to_string(superblock.last_write_time as u64)
+	);
+	println!("64bit_support : {}", superblock.check_64_bit_support());
+	println!(
+		"EA Inode_support : {}",
+		superblock.check_extended_attr_support()
+	);
+	println!("Flex BG : {}", superblock.check_flex_block_group_support());
+
+	for i in 2..3 {
+		let group_descriptor = read_header_from_offset::<ext4::block_group::BlockGroupDescriptor>(
+			&file_arg,
+			((ext4.first_lba * BLOCK_SIZE) + 2048) + 64 * i,
+		);
+		println!("{0:?}", group_descriptor);
+		//println!("{}",.)
+	}
 }

@@ -16,7 +16,7 @@ num-derive = "0.2"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 compiled-uuid = "0.1"
 lazy_static = "1.4.0"
-
+chrono = "0.4.19"
 
 [dependencies.iced-x86]
 version = "1.17.0"

@@ -6,6 +6,8 @@ use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
 use uuid::*;
+extern crate chrono;
+use chrono::prelude::*;
 
 pub fn read_header_from_offset<Header: Sized + DeserializeOwned>(
     file_arg: &str,
@@ -119,4 +121,12 @@ where
 
 pub fn bitfield_fetch<T: Sized + PrimInt>(target: T, bitmask: T) -> bool {
     return (target & bitmask) == bitmask;
+}
+
+pub fn timestamp_to_string(timestamp: u64) -> String {
+    let _timestamp = timestamp as i64;
+    let naive = NaiveDateTime::from_timestamp(_timestamp, 0);
+    let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
+    let newdate = datetime.format("%Y-%m-%d %H:%M:%S");
+    format!("{}", newdate)
 }

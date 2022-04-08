@@ -1,4 +1,4 @@
-use crate::headers::reader::uuid_deserialize;
+use crate::headers::reader::{bitfield_fetch, uuid_deserialize};
 use serde::Deserialize;
 use serde_big_array::BigArray;
 use uuid::Uuid;
@@ -26,15 +26,16 @@ pub struct Superblock {
     pub max_mnt_count: u16, //Number of mounts allowed before a consistency check (fsck) must be done
     pub magic: u16, //Magic signature (0xef53), used to help confirm the presence of Ext4 on a volume
     pub fs_state: u16, //File system state.
-    pub error_action: u16, //What to do when an error is detectedBehaviour when detecting errors. One of:
+    // Behaviour when detecting errors. One of:
     // 1	Continue
     // 2	Remount read-only
     // 3	Panic
+    pub error_action: u16,
     pub version_minor: u16, //Minor portion of version (combine with Major portion below to construct full version field)
     pub last_check: u32,    //POSIX time of last consistency check (fsck)
     pub check_interval: u32, //Interval (in POSIX time) between forced consistency checks (fsck)
     pub creator_os: u32, //Operating system ID from which the filesystem on this volume was created (see below)
-    //0	Linux
+    // 0	Linux
     // 1	Hurd
     // 2	Masix
     // 3	FreeBSD
@@ -45,7 +46,6 @@ pub struct Superblock {
     pub default_gid_owner: u16, //Group ID that can use reserved blocks
     /*
     These following fields are EXT4_DYNAMIC_REV superblocks only.
-
     */
     pub first_ino: u32,      // First non-reserved inode.
     pub inode_size: u16,     // Size of inode structure, in bytes.
@@ -139,6 +139,16 @@ impl Superblock {
     pub fn last_error_func(&self) -> String {
         std::string::String::from_utf8(self.last_error_func.to_vec()).unwrap()
     }
+
+    pub fn check_64_bit_support(&self) -> bool {
+        bitfield_fetch(self.feature_incompat, feature_bitflags::USES_64BIT)
+    }
+    pub fn check_flex_block_group_support(&self) -> bool {
+        bitfield_fetch(self.feature_incompat, feature_bitflags::USES_FLEX_BG)
+    }
+    pub fn check_extended_attr_support(&self) -> bool {
+        bitfield_fetch(self.feature_incompat, feature_bitflags::USES_EA_INODE)
+    }
 }
 
 //(0x[0-9]+)(.*)\(([A-Z0-9_]+)\)
@@ -153,8 +163,8 @@ pub mod hashalgo_bitflags {
     pub const TEA_UNSIGNED: u8 = 0x5;
 }
 
-pub mod compat_bitflags {
-    //Compatible feature set flags. Kernel can still read/write this fs even if it doesn't understand a flag; e2fsck will not attempt to fix a filesystem with any unknown COMPAT flags. Any of:
+pub mod opt_feature_bitflags {
+    //optional feature set flags. Kernel can still read/write this fs even if it doesn't understand a flag; e2fsck will not attempt to fix a filesystem with any unknown COMPAT flags. Any of:
     pub const COMPAT_DIR_PREALLOC: u32 = 0x1; // Directory preallocation (COMPAT_DIR_PREALLOC).
     pub const COMPAT_IMAGIC_INODES: u32 = 0x2; //"imagic inodes". Used by AFS to indicate inodes that are not linked into the directory namespace. Inodes marked with this flag will not be added to lost+found by e2fsck. (COMPAT_IMAGIC_INODES).
     pub const COMPAT_HAS_JOURNAL: u32 = 0x4; // 	Has a journal (COMPAT_HAS_JOURNAL).
@@ -184,23 +194,26 @@ pub mod readonly_bitflags {
     pub const RO_COMPAT_PROJECT: u32 = 0x2000; // 	Filesystem tracks project quotas.
 }
 
-pub mod incompat_bitflags {
-    //Incompatible feature set. If the kernel or e2fsck doesn't understand one of these bits, it will refuse to mount or attempt to repair the filesystem. Any of:
-    pub const INCOMPAT_COMPRESSION: u32 = 0x1; // 	Compression. Not implemented. .
-    pub const INCOMPAT_FILETYPE: u32 = 0x2; // 	Directory entries record the file type. See ext4_dir_entry_2 below. .
-    pub const INCOMPAT_RECOVER: u32 = 0x4; // 	Filesystem needs journal recovery. .
-    pub const INCOMPAT_JOURNAL_DEV: u32 = 0x8; // 	Filesystem has a separate journal device. .
-    pub const INCOMPAT_META_BG: u32 = 0x10; // 	Meta block groups. See the earlier discussion of this feature. .
-    pub const INCOMPAT_EXTENTS: u32 = 0x40; // 	Files in this filesystem use extents. .
-    pub const INCOMPAT_64BIT: u32 = 0x80; //Enable a filesystem size over 2^32 blocks. (INCOMPAT_64BIT).
-    pub const INCOMPAT_MMP: u32 = 0x100; // 	Multiple mount protection. Prevent multiple hosts from mounting the filesystem concurrently by updating a reserved block periodically while mounted and checking this at mount time to determine if the filesystem is in use on another host. .
-    pub const INCOMPAT_FLEX_BG: u32 = 0x200; // 	Flexible block groups. See the earlier discussion of this feature. .
-    pub const INCOMPAT_EA_INODE: u32 = 0x400; // 	Inodes can be used to store large extended attribute values .
-    pub const INCOMPAT_DIRDATA: u32 = 0x1000; // 	Data in directory entry. Allow additional data fields to be stored in each dirent, after struct ext4_dirent. The presence of extra data is indicated by flags in the high bits of ext4_dirent file type flags (above EXT4_FT_MAX). The flag EXT4_DIRENT_LUFID = 0x10 is used to store a 128-bit File Identifier for Lustre. The flag EXT4_DIRENT_IO64 = 0x20 is used to store the high word of 64-bit inode numbers. Feature still in development. .
-    pub const INCOMPAT_CSUM_SEED: u32 = 0x2000; // 	Metadata checksum seed is stored in the superblock. This feature enables the administrator to change the UUID of a metadata_csum filesystem while the filesystem is mounted; without it, the checksum definition requires all metadata blocks to be rewritten. .
-    pub const INCOMPAT_LARGEDIR: u32 = 0x4000; // 	Large directory >2GB or 3-level htree. Prior to this feature, directories could not be larger than 4GiB and could not have an htree more than 2 levels deep. If this feature is enabled, directories can be larger than 4GiB and have a maximum htree depth of 3. .
-    pub const INCOMPAT_INLINE_DATA: u32 = 0x8000; // 	Data in inode. Small files or directories are stored directly in the inode i_blocks and/or xattr space. .
-    pub const INCOMPAT_ENCRYPT: u32 = 0x10000; // 	Encrypted inodes are present on the filesystem .
+pub mod feature_bitflags {
+    //NOTE: linux names these INCOMPAT_ which confuses my puny brain.
+    // The flag is set when the feature is present,if the FS doesn't support it, it will fail to mount.
+    // I'm naming them USES because I have to read them when I'm tired.
+    // Actual docs not follows: Incompatible feature set. If the kernel or e2fsck doesn't understand one of these bits, it will refuse to mount or attempt to repair the filesystem. Any of:
+    pub const USES_COMPRESSION: u32 = 0x1; // 	Compression. Not implemented. .
+    pub const USES_FILETYPE: u32 = 0x2; // 	Directory entries record the file type. See ext4_dir_entry_2 below. .
+    pub const USES_RECOVER: u32 = 0x4; // 	Filesystem needs journal recovery. .
+    pub const USES_JOURNAL_DEV: u32 = 0x8; // 	Filesystem has a separate journal device. .
+    pub const USES_META_BG: u32 = 0x10; // 	Meta block groups. See the earlier discussion of this feature. .
+    pub const USES_EXTENTS: u32 = 0x40; // 	Files in this filesystem use extents. .
+    pub const USES_64BIT: u32 = 0x80; //Enable a filesystem size over 2^32 blocks. (INCOMPAT_64BIT).
+    pub const USES_MMP: u32 = 0x100; // 	Multiple mount protection. Prevent multiple hosts from mounting the filesystem concurrently by updating a reserved block periodically while mounted and checking this at mount time to determine if the filesystem is in use on another host. .
+    pub const USES_FLEX_BG: u32 = 0x200; // 	Flexible block groups. See the earlier discussion of this feature. .
+    pub const USES_EA_INODE: u32 = 0x400; // 	Inodes can be used to store large extended attribute values .
+    pub const USES_DIRDATA: u32 = 0x1000; // 	Data in directory entry. Allow additional data fields to be stored in each dirent, after struct ext4_dirent. The presence of extra data is indicated by flags in the high bits of ext4_dirent file type flags (above EXT4_FT_MAX). The flag EXT4_DIRENT_LUFID = 0x10 is used to store a 128-bit File Identifier for Lustre. The flag EXT4_DIRENT_IO64 = 0x20 is used to store the high word of 64-bit inode numbers. Feature still in development. .
+    pub const USES_CSUM_SEED: u32 = 0x2000; // 	Metadata checksum seed is stored in the superblock. This feature enables the administrator to change the UUID of a metadata_csum filesystem while the filesystem is mounted; without it, the checksum definition requires all metadata blocks to be rewritten. .
+    pub const USES_LARGEDIR: u32 = 0x4000; // 	Large directory >2GB or 3-level htree. Prior to this feature, directories could not be larger than 4GiB and could not have an htree more than 2 levels deep. If this feature is enabled, directories can be larger than 4GiB and have a maximum htree depth of 3. .
+    pub const USES_INLINE_DATA: u32 = 0x8000; // 	Data in inode. Small files or directories are stored directly in the inode i_blocks and/or xattr space. .
+    pub const USES_ENCRYPT: u32 = 0x10000; // 	Encrypted inodes are present on the filesystem .
 }
 
 pub mod ext4mount_bitflags {
