@@ -140,14 +140,20 @@ impl Superblock {
         std::string::String::from_utf8(self.last_error_func.to_vec()).unwrap()
     }
 
-    pub fn check_64_bit_support(&self) -> bool {
+    pub fn uses_64bit(&self) -> bool {
         bitfield_fetch(self.feature_incompat, feature_bitflags::USES_64BIT)
     }
-    pub fn check_flex_block_group_support(&self) -> bool {
+    pub fn uses_flex_bg(&self) -> bool {
         bitfield_fetch(self.feature_incompat, feature_bitflags::USES_FLEX_BG)
     }
-    pub fn check_extended_attr_support(&self) -> bool {
+    pub fn uses_ext_attr(&self) -> bool {
         bitfield_fetch(self.feature_incompat, feature_bitflags::USES_EA_INODE)
+    }
+    pub fn uses_mmp(&self) -> bool {
+        bitfield_fetch(self.feature_incompat, feature_bitflags::USES_MMP)
+    }
+    pub fn uses_journal(&self) -> bool {
+        bitfield_fetch(self.feature_incompat, feature_bitflags::USES_JOURNAL_DEV)
     }
 }
 

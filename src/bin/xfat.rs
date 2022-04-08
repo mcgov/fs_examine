@@ -1,6 +1,8 @@
 use ::xfat::headers::ext4;
 use std::env;
+use std::mem::size_of;
 use xfat::headers::ext4::superblock::Superblock;
+use xfat::headers::ext4::*;
 use xfat::headers::gpt::partitions::PartitionEntry;
 use xfat::headers::gpt::Gpt;
 use xfat::headers::mbr::Mbr;
@@ -53,28 +55,38 @@ fn main() {
 
 	let superblock =
 		read_header_from_offset::<Superblock>(&file_arg, 1024 + ext4.first_lba * BLOCK_SIZE); //ext4 pads 1024 bytes ahead of block0
-	println!("{:x?}", superblock);
+	println!("{:?}", superblock);
 	println!("volume name: {}", superblock.volume_name());
-	println!("volume name: {}", superblock.mount_opts());
-	println!("volume name: {}", superblock.last_mounted());
+	println!("mount opts: {}", superblock.mount_opts());
+	println!("last mounted: {}", superblock.last_mounted());
 	println!("first_error: {}", superblock.first_error_func());
 	println!(
-		"last_error : {}",
-		timestamp_to_string(superblock.last_write_time as u64)
+		"last check : {}",
+		timestamp_to_string(superblock.last_check as u64)
 	);
-	println!("64bit_support : {}", superblock.check_64_bit_support());
-	println!(
-		"EA Inode_support : {}",
-		superblock.check_extended_attr_support()
-	);
-	println!("Flex BG : {}", superblock.check_flex_block_group_support());
+	println!("64bit_support : {}", superblock.uses_64bit());
+	println!("EA Inode_support : {}", superblock.uses_ext_attr());
+	println!("Flex BG : {}", superblock.uses_flex_bg());
+	println!("MMP : {}", superblock.uses_mmp());
+	println!("Journal : {}", superblock.uses_journal());
 
-	for i in 2..3 {
-		let group_descriptor = read_header_from_offset::<ext4::block_group::BlockGroupDescriptor>(
-			&file_arg,
-			((ext4.first_lba * BLOCK_SIZE) + 2048) + 64 * i,
-		);
-		println!("{0:?}", group_descriptor);
+	if !superblock.uses_64bit() {
+		for i in 2..3 {
+			let group_descriptor =
+				read_header_from_offset::<ext4::block_group::BlockGroupDescriptor32>(
+					&file_arg,
+					((ext4.first_lba * BLOCK_SIZE) + 2048)
+						+ size_of::<ext4::block_group::BlockGroupDescriptor32>() as u64 * i,
+				);
+			println!("{0:x?}", group_descriptor);
+			let inode_block = group_descriptor.inode_table_lo;
+			let inode = read_header_from_offset::<ext4::inode::Inode>(
+				&file_arg,
+				((ext4.first_lba * BLOCK_SIZE) + 2048) + inode_block as u64,
+			);
+			println!("{0:x?}", inode);
+			inode.print_times();
+		}
 		//println!("{}",.)
 	}
 }
