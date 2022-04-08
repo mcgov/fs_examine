@@ -34,7 +34,7 @@ use xfat::headers::reader::*;
 		extended_boot_sector.section_is_valid(main_exfat.bytes_per_sector_shift)
 	);
 */
-const BLOCK_SIZE: u64 = 512;
+const BLOCK_SIZE: u64 = 512; //this needs a rename
 
 fn main() {
 	let file_arg = env::args().nth(1).unwrap();
@@ -54,6 +54,7 @@ fn main() {
 	let ext4 =
 		read_header_from_offset::<PartitionEntry>(&file_arg, gpt.gpe_table_start * BLOCK_SIZE);
 
+	// block offsets are from block_0 on the ext* partition.
 	let block_0 = ext4.first_lba * BLOCK_SIZE;
 	let super_block_offset = 1024 + block_0;
 	let superblock = read_header_from_offset::<Superblock>(&file_arg, super_block_offset); //ext4 pads 1024 bytes ahead of block0
@@ -78,13 +79,16 @@ fn main() {
 	);
 	let block_size = 1024 << superblock.log_block_size;
 
-	fn get_block_number(block_0: u64, index: u64, block_size: u64) -> u64 {
+	fn get_offset_from_block_number(block_0: u64, index: u64, block_size: u64) -> u64 {
 		block_0 + index * block_size
 	}
 
 	println!("BLOCKSIZE: {}", block_size);
+	// NOTE there is a subtlety to this if the block size is not 1024, just adding 1024 isn't enough
+	// the superblock is either in block 0 +1024bytes if it's large enough or or block 1 if it's 1024
+	// the BGD table is at the start of the next block, so either 2 or 1 if 0 is large enough.
 	let block_group_desc_table_offset =
-		get_block_number(block_0, 1 + superblock.superblock as u64, block_size);
+		get_offset_from_block_number(block_0, 1 + superblock.superblock as u64, block_size);
 	if !superblock.uses_64bit() {
 		for i in 0..10 {
 			let group_descriptor =
@@ -95,15 +99,18 @@ fn main() {
 				);
 			println!("BGD {}: {:x?}", i, group_descriptor);
 
-			let inode_block =
-				get_block_number(block_0, group_descriptor.inode_table_lo as u64, block_size)
-					as u64;
+			let inode_table = get_offset_from_block_number(
+				block_0,
+				group_descriptor.inode_table_lo as u64,
+				block_size,
+			) as u64;
 			let inode_size = superblock.inode_size;
 			for j in 0..superblock.inodes_per_group - group_descriptor.free_inodes_count_lo as u32 {
 				let inode = read_header_from_offset::<ext4::inode::Inode>(
 					&file_arg,
-					inode_block + inode_size as u64 * j as u64,
+					inode_table + inode_size as u64 * j as u64,
 				);
+				// print the timestamp is not zero while we're debugging
 				if inode.crtime != 0 {
 					println!("Inode:{} {:x?}", j, inode);
 					inode.print_times();
