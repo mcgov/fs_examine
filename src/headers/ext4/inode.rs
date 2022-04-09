@@ -59,6 +59,27 @@ impl Inode {
                 attr_bitflags::EXT4_INLINE_DATA_FL
             ))
         );
+        println!(
+            "regular file?: {}",
+            print_bool(bitfield_fetch::<u16>(
+                self.mode,
+                filemode_bitflags::mutex::S_IFREG
+            ))
+        );
+        println!(
+            "dir?: {}",
+            print_bool(bitfield_fetch::<u16>(
+                self.mode,
+                filemode_bitflags::mutex::S_IFDIR
+            ))
+        );
+        println!(
+            "hashed entries?: {}",
+            print_bool(bitfield_fetch::<u32>(
+                self.flags,
+                attr_bitflags::EXT4_INDEX_FL
+            ))
+        );
     }
 
     pub fn inode_uses_extents(&self) -> bool {

@@ -144,22 +144,19 @@ impl Superblock {
     }
 
     pub fn uses_64bit(&self) -> bool {
-        bitfield_fetch(self.feature_incompat, feature_bitflags::USES_64BIT)
+        bitfield_fetch(self.feature_incompat, incompat_bitflags::USES_64BIT)
     }
     pub fn uses_flex_bg(&self) -> bool {
-        bitfield_fetch(self.feature_incompat, feature_bitflags::USES_FLEX_BG)
+        bitfield_fetch(self.feature_incompat, incompat_bitflags::USES_FLEX_BG)
     }
     pub fn uses_ext_attr(&self) -> bool {
-        bitfield_fetch(self.feature_compat, opt_feature_bitflags::COMPAT_EXT_ATTR)
+        bitfield_fetch(self.feature_compat, compat_bitflags::COMPAT_EXT_ATTR)
     }
     pub fn uses_mmp(&self) -> bool {
-        bitfield_fetch(self.feature_incompat, feature_bitflags::USES_MMP)
+        bitfield_fetch(self.feature_incompat, incompat_bitflags::USES_MMP)
     }
     pub fn uses_journal(&self) -> bool {
-        bitfield_fetch(
-            self.feature_compat,
-            opt_feature_bitflags::COMPAT_HAS_JOURNAL,
-        )
+        bitfield_fetch(self.feature_compat, compat_bitflags::COMPAT_HAS_JOURNAL)
     }
     pub fn flex_bg_size(&self) -> u64 {
         1 << self.log_groups_per_flex
@@ -188,15 +185,15 @@ impl Superblock {
         println!(
             "Uses EA Inode present?: {}",
             print_bool(bitfield_fetch::<u32>(
-                self.feature_compat,
-                feature_bitflags::USES_EA_INODE
+                self.feature_incompat,
+                incompat_bitflags::USES_EA_INODE
             ))
         );
         println!(
             "Inline Data present?: {}",
             print_bool(bitfield_fetch::<u32>(
-                self.feature_compat,
-                feature_bitflags::USES_INLINE_DATA
+                self.feature_incompat,
+                incompat_bitflags::USES_INLINE_DATA
             ))
         );
         println!(
@@ -204,6 +201,20 @@ impl Superblock {
             print_bool(bitfield_fetch::<u32>(
                 self.feature_ro_compat,
                 readonly_bitflags::RO_COMPAT_EXTRA_ISIZE
+            ))
+        );
+        println!(
+            "Uses dirdata: {}",
+            print_bool(bitfield_fetch::<u32>(
+                self.feature_incompat,
+                incompat_bitflags::USES_DIRDATA
+            ))
+        );
+        println!(
+            "FILETYPE flag set: {}",
+            print_bool(bitfield_fetch::<u32>(
+                self.feature_incompat,
+                incompat_bitflags::USES_FILETYPE
             ))
         );
     }
@@ -221,7 +232,7 @@ pub mod hashalgo_bitflags {
     pub const TEA_UNSIGNED: u8 = 0x5;
 }
 
-pub mod opt_feature_bitflags {
+pub mod compat_bitflags {
     //optional feature set flags. Kernel can still read/write this fs even if it doesn't understand a flag; e2fsck will not attempt to fix a filesystem with any unknown COMPAT flags. Any of:
     pub const COMPAT_DIR_PREALLOC: u32 = 0x1; // Directory preallocation (COMPAT_DIR_PREALLOC).
     pub const COMPAT_IMAGIC_INODES: u32 = 0x2; //"imagic inodes". Used by AFS to indicate inodes that are not linked into the directory namespace. Inodes marked with this flag will not be added to lost+found by e2fsck. (COMPAT_IMAGIC_INODES).
@@ -252,7 +263,7 @@ pub mod readonly_bitflags {
     pub const RO_COMPAT_PROJECT: u32 = 0x2000; // 	Filesystem tracks project quotas.
 }
 
-pub mod feature_bitflags {
+pub mod incompat_bitflags {
     //NOTE: linux names these INCOMPAT_ which confuses my puny brain.
     // The flag is set when the feature is present,if the FS doesn't support it, it will fail to mount.
     // I'm naming them USES because I have to read them when I'm tired.
