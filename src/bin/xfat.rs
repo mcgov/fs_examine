@@ -1,6 +1,7 @@
 use ::xfat::headers::ext4;
 use std::env;
 use std::mem::size_of;
+use xfat::headers::ext4::dirent::*;
 use xfat::headers::ext4::superblock::feature_bitflags;
 use xfat::headers::ext4::superblock::Superblock;
 use xfat::headers::ext4::*;
@@ -96,7 +97,11 @@ fn main() {
 				if inode.inode_uses_extents() {
 					let extent = inode.get_extent();
 					println!("Extent: {:#X?}", extent);
-					let _read_block = extent.leaf.get_block();
+					let read_block = extent.leaf.get_block();
+					let offset = get_offset_from_block_number(block_0, read_block, block_size);
+					let bytes = read_bytes_from_file(&file_arg, offset, 263);
+					let dirent = get_dir_ent(&bytes[..]);
+					println!("dirent: {:x?}", dirent);
 				}
 				if inode.crtime != 0 {
 					println!("Inode:{} {:x?}", j, inode);

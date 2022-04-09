@@ -12,6 +12,17 @@ extern crate colored;
 use chrono::prelude::*;
 use colored::*;
 
+pub fn read_bytes_from_file(file_arg: &str, offset: u64, size: usize) -> Vec<u8> {
+    let mut file = File::open(file_arg).unwrap();
+    let res = file.seek(SeekFrom::Start(offset)).unwrap();
+    if res != offset {
+        panic!("Failed to seek to offset\n");
+    }
+    let mut file_data: Vec<u8> = vec![0; size];
+    file.read_exact(&mut file_data[..]).unwrap();
+    file_data
+}
+
 pub fn read_header_from_offset<Header: Sized + DeserializeOwned>(
     file_arg: &str,
     offset: u64,
