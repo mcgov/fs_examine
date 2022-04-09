@@ -93,9 +93,14 @@ fn main() {
 					inode_table + inode_size as u64 * j as u64,
 				);
 				// print the timestamp is not zero while we're debugging
+				if inode.inode_uses_extents() {
+					let extent = inode.get_extent();
+					println!("Extent: {:#X?}", extent);
+					let _read_block = extent.leaf.get_block();
+				}
 				if inode.crtime != 0 {
 					println!("Inode:{} {:x?}", j, inode);
-					inode.print_times();
+					inode.print_fields();
 				}
 			}
 		}

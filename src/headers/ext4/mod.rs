@@ -1,4 +1,4 @@
 pub mod block_group;
-pub mod extant;
+pub mod extent;
 pub mod inode;
 pub mod superblock;

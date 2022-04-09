@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
-pub struct ExtantHeader {
+pub struct ExtentHeader {
     pub eh_magic: u16,      // 	Magic number, 0xF30A.
     pub eh_entries: u16,    // 	Number of valid entries following the header.
     pub eh_max: u16,        // 	Maximum number of entries that could follow the header.
@@ -9,20 +9,32 @@ pub struct ExtantHeader {
     pub eh_generation: u32, // 	Generation of the tree. (Used by Lustre, but not standard ext4).
 }
 #[derive(Deserialize, Debug)]
-pub struct ExtantNode {
+pub struct ExtentNode {
     pub ei_block: u32,   // 	This index node covers file blocks from 'block' onward.
     pub ei_leaf_lo: u32, // 	Lower 32-bits of the block number of the extent node that is the next level lower in the tree. The tree node pointed to can be either another internal node or a leaf node, described below.
     pub ei_leaf_hi: u16, // 	Upper 16-bits of the previous field.
     pub ei_unused: u16,  //
 }
 #[derive(Deserialize, Debug)]
-pub struct ExtantLeaf {
+pub struct ExtentLeaf {
     pub ee_block: u32,    // 	First file block number that this extent covers.
     pub ee_len: u16, // 	Number of blocks covered by extent. If the value of this field is <= 32768, the extent is initialized. If the value of the field is > 32768, the extent is uninitialized and the actual extent length is ee_len - 32768. Therefore, the maximum length of a initialized extent is 32768 blocks, and the maximum length of an uninitialized extent is 32767.
     pub ee_start_hi: u16, // 	Upper 16-bits of the block number to which this extent points.
     pub ee_start_lo: u32, // 	Lower 32-bits of the block number to which this extent points.
 }
 #[derive(Deserialize, Debug)]
-pub struct ExtantTail {
+pub struct ExtentTail {
     pub eb_checksum: u32, // 	Checksum of the extent block, crc32c(uuid+inum+igeneration+extentblock)
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ExtentAttrEntry {
+    pub hdr: ExtentHeader,
+    pub leaf: ExtentLeaf, // FIXME: this is cheating, there can be more than one entry in the attrs
+}
+
+impl ExtentLeaf {
+    pub fn get_block(&self) -> u64 {
+        self.ee_start_lo as u64 | ((self.ee_start_hi as u64) << 32)
+    }
 }

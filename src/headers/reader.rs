@@ -7,7 +7,10 @@ use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
 use uuid::*;
 extern crate chrono;
+extern crate colored;
+
 use chrono::prelude::*;
+use colored::*;
 
 pub fn read_header_from_offset<Header: Sized + DeserializeOwned>(
     file_arg: &str,
@@ -23,9 +26,18 @@ pub fn read_header_from_offset<Header: Sized + DeserializeOwned>(
         let mut file_data: Vec<u8> = vec![0; size];
         file.read_exact(&mut file_data[..]).unwrap();
         // read the bytes into the struct
-        deserialize::<Header>(&file_data[..]).unwrap()
+        read_header_from_bytevec::<Header>(file_data)
     };
     header
+}
+
+pub fn read_header_from_bytevec<Header: Sized + DeserializeOwned>(bytes: Vec<u8>) -> Header {
+    // read the bytes into the struct
+    deserialize::<Header>(&bytes[..]).unwrap()
+}
+
+pub fn read_header_from_bytes<Header: Sized + DeserializeOwned>(bytes: &[u8]) -> Header {
+    deserialize::<Header>(&bytes[..]).unwrap()
 }
 
 pub fn le_u128_deserialize<'de, D>(d: D) -> Result<u128, D::Error>
@@ -129,4 +141,13 @@ pub fn timestamp_to_string(timestamp: u64) -> String {
     let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
     let newdate = datetime.format("%Y-%m-%d %H:%M:%S");
     format!("{}", newdate)
+}
+
+pub fn print_bool(boolean: bool) -> String {
+    let result = format!("{:?}", boolean);
+    if boolean {
+        return result.green().to_string();
+    } else {
+        return result.red().to_string();
+    }
 }

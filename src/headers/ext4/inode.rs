@@ -1,3 +1,4 @@
+use crate::headers::ext4::extent::*;
 use crate::headers::reader::*;
 use serde::Deserialize;
 use serde_big_array::BigArray;
@@ -41,15 +42,34 @@ pub struct Inode {
 }
 
 impl Inode {
-    pub fn print_times(&self) {
+    pub fn print_fields(&self) {
         println!("accessed: {:#?}", timestamp_to_string(self.atime as u64));
         println!("created: {:#?}", timestamp_to_string(self.crtime as u64));
         println!("modified: {:#?}", timestamp_to_string(self.mtime as u64));
         println!("deleted: {:#?}", timestamp_to_string(self.dtime as u64));
+        println!("uses extents: {}", print_bool(self.inode_uses_extents()));
+        println!(
+            "uses big attrs: {}",
+            print_bool(self.inode_uses_big_exattr())
+        );
+        println!(
+            "has inline data: {}",
+            print_bool(bitfield_fetch::<u32>(
+                self.flags,
+                attr_bitflags::EXT4_INLINE_DATA_FL
+            ))
+        );
     }
 
-    pub fn inode_uses_extants(&self) -> bool {
+    pub fn inode_uses_extents(&self) -> bool {
         bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_EXTENTS_FL)
+    }
+    pub fn inode_uses_big_exattr(&self) -> bool {
+        bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_EA_INODE_FL)
+    }
+    pub fn get_extent(&self) -> ExtentAttrEntry {
+        assert_eq!(self.inode_uses_extents(), true);
+        read_header_from_bytes::<ExtentAttrEntry>(&self.block[..])
     }
 }
 

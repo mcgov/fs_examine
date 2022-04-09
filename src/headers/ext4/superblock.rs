@@ -1,4 +1,4 @@
-use crate::headers::reader::{bitfield_fetch, timestamp_to_string, uuid_deserialize};
+use crate::headers::reader::*;
 use nameof;
 use num_traits::PrimInt;
 use serde::Deserialize;
@@ -184,6 +184,27 @@ impl Superblock {
             "FlexBG Size: val: {} size 0x{:X?}",
             self.log_groups_per_flex,
             self.flex_bg_size()
+        );
+        println!(
+            "Uses EA Inode present?: {}",
+            print_bool(bitfield_fetch::<u32>(
+                self.feature_compat,
+                feature_bitflags::USES_EA_INODE
+            ))
+        );
+        println!(
+            "Inline Data present?: {}",
+            print_bool(bitfield_fetch::<u32>(
+                self.feature_compat,
+                feature_bitflags::USES_INLINE_DATA
+            ))
+        );
+        println!(
+            "ROCompat Extra Isize info present?: {}",
+            print_bool(bitfield_fetch::<u32>(
+                self.feature_ro_compat,
+                readonly_bitflags::RO_COMPAT_EXTRA_ISIZE
+            ))
         );
     }
 }
