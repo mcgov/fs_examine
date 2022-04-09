@@ -1,11 +1,11 @@
 use crate::headers::reader::*;
+use colored::*;
 use nameof;
 use num_traits::PrimInt;
 use serde::Deserialize;
 use serde_big_array::BigArray;
 use std::fmt::{Debug, UpperHex};
 use uuid::Uuid;
-
 // source of truth: https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout
 // also used https://wiki.osdev.org/Ext4
 
@@ -144,16 +144,16 @@ impl Superblock {
     }
 
     pub fn uses_64bit(&self) -> bool {
-        bitfield_fetch(self.feature_incompat, incompat_bitflags::USES_64BIT)
+        bitfield_fetch(self.feature_incompat, breaks_compat::USES_64BIT)
     }
     pub fn uses_flex_bg(&self) -> bool {
-        bitfield_fetch(self.feature_incompat, incompat_bitflags::USES_FLEX_BG)
+        bitfield_fetch(self.feature_incompat, breaks_compat::USES_FLEX_BG)
     }
     pub fn uses_ext_attr(&self) -> bool {
         bitfield_fetch(self.feature_compat, compat_bitflags::COMPAT_EXT_ATTR)
     }
     pub fn uses_mmp(&self) -> bool {
-        bitfield_fetch(self.feature_incompat, incompat_bitflags::USES_MMP)
+        bitfield_fetch(self.feature_incompat, breaks_compat::USES_MMP)
     }
     pub fn uses_journal(&self) -> bool {
         bitfield_fetch(self.feature_compat, compat_bitflags::COMPAT_HAS_JOURNAL)
@@ -172,9 +172,13 @@ impl Superblock {
             "last check : {}",
             timestamp_to_string(self.last_check as u64)
         );
-        println!("64bit_support : {}", self.uses_64bit());
-        println!("Ext Attrs : {}", self.uses_ext_attr());
-        println!("Flex BG : {}", self.uses_flex_bg());
+        println!(
+            "Ext4 Dynamic rev?: {}",
+            print_bool(self.version_major == constants::EXT4_DYNAMIC_REV)
+        );
+        println!("64bit_support : {}", print_bool(self.uses_64bit()));
+        println!("Ext Attrs : {}", print_bool(self.uses_ext_attr()));
+        println!("Flex BG : {}", print_bool(self.uses_flex_bg()));
         println!("MMP : {}", self.uses_mmp());
         println!("Journal (internal) : {}", self.uses_journal());
         println!(
@@ -186,38 +190,57 @@ impl Superblock {
             "Uses EA Inode present?: {}",
             print_bool(bitfield_fetch::<u32>(
                 self.feature_incompat,
-                incompat_bitflags::USES_EA_INODE
+                breaks_compat::USES_EA_INODE
             ))
         );
         println!(
             "Inline Data present?: {}",
             print_bool(bitfield_fetch::<u32>(
                 self.feature_incompat,
-                incompat_bitflags::USES_INLINE_DATA
+                breaks_compat::USES_INLINE_DATA
             ))
         );
         println!(
             "ROCompat Extra Isize info present?: {}",
             print_bool(bitfield_fetch::<u32>(
                 self.feature_ro_compat,
-                readonly_bitflags::RO_COMPAT_EXTRA_ISIZE
+                compat_readonly::RO_COMPAT_EXTRA_ISIZE
             ))
         );
         println!(
             "Uses dirdata: {}",
             print_bool(bitfield_fetch::<u32>(
                 self.feature_incompat,
-                incompat_bitflags::USES_DIRDATA
+                breaks_compat::USES_DIRDATA
             ))
         );
         println!(
             "FILETYPE flag set: {}",
             print_bool(bitfield_fetch::<u32>(
                 self.feature_incompat,
-                incompat_bitflags::USES_FILETYPE
+                breaks_compat::USES_FILETYPE
+            ))
+        );
+        println!(
+            "META_BG flag set: {}",
+            print_bool(bitfield_fetch::<u32>(
+                self.feature_incompat,
+                breaks_compat::USES_META_BG
+            ))
+        );
+        println!(
+            "Huge Inodes?: {}",
+            print_bool(bitfield_fetch::<u32>(
+                self.feature_compat,
+                compat_readonly::RO_COMPAT_HUGE_FILE
             ))
         );
     }
+}
+
+pub mod constants {
+    pub const EXT4_GOOD_OLD_REV: u32 = 0; /* The good old (original) format */
+    pub const EXT4_DYNAMIC_REV: u32 = 1;
 }
 
 //(0x[0-9]+)(.*)\(([A-Z0-9_]+)\)
@@ -245,7 +268,7 @@ pub mod compat_bitflags {
     pub const COMPAT_EXCLUDE_BITMAP: u32 = 0x100; // 	"Exclude bitmap". Seems to be used to indicate the presence of snapshot-related exclude bitmaps? Not defined in kernel or used in e2fsprogs. (COMPAT_EXCLUDE_BITMAP).
     pub const COMPAT_SPARSE_SUPER2: u32 = 0x200; // 	Sparse Super Block, v2. If this flag is set, the SB field s_backup_bgs points to the two block groups that contain backup superblocks. (COMPAT_SPARSE_SUPER2).
 }
-pub mod readonly_bitflags {
+pub mod compat_readonly {
     // Readonly-compatible feature set. If the kernel doesn't understand one of these bits, it can still mount read-only, but e2fsck will refuse to modify the filesystem. Any of:
     pub const RO_COMPAT_SPARSE_SUPER: u32 = 0x1; // 	Sparse superblocks. See the earlier discussion of this feature. .
     pub const RO_COMPAT_LARGE_FILE: u32 = 0x2; // 	Allow storing files larger than 2GiB .
@@ -263,7 +286,7 @@ pub mod readonly_bitflags {
     pub const RO_COMPAT_PROJECT: u32 = 0x2000; // 	Filesystem tracks project quotas.
 }
 
-pub mod incompat_bitflags {
+pub mod breaks_compat {
     //NOTE: linux names these INCOMPAT_ which confuses my puny brain.
     // The flag is set when the feature is present,if the FS doesn't support it, it will fail to mount.
     // I'm naming them USES because I have to read them when I'm tired.

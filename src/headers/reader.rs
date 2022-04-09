@@ -13,6 +13,8 @@ use chrono::prelude::*;
 use colored::*;
 
 pub fn read_bytes_from_file(file_arg: &str, offset: u64, size: usize) -> Vec<u8> {
+    let output = format!("Reading from 0x{:X}", offset).yellow();
+    println!("{}", output);
     let mut file = File::open(file_arg).unwrap();
     let res = file.seek(SeekFrom::Start(offset)).unwrap();
     if res != offset {
@@ -28,14 +30,8 @@ pub fn read_header_from_offset<Header: Sized + DeserializeOwned>(
     offset: u64,
 ) -> Header {
     let header: Header = {
-        let mut file = File::open(file_arg).unwrap();
-        let _res = file.seek(SeekFrom::Start(offset)).unwrap();
-        if _res != offset {
-            panic!("Failed to seek to offset\n");
-        }
         let size = size_of::<Header>();
-        let mut file_data: Vec<u8> = vec![0; size];
-        file.read_exact(&mut file_data[..]).unwrap();
+        let file_data = read_bytes_from_file(file_arg, offset, size);
         // read the bytes into the struct
         read_header_from_bytevec::<Header>(file_data)
     };

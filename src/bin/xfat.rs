@@ -1,4 +1,5 @@
 use ::xfat::headers::ext4;
+use colored::*;
 use std::env;
 use std::mem::size_of;
 use xfat::headers::ext4::dirent::*;
@@ -81,6 +82,10 @@ fn main() {
 						+ size_of::<ext4::block_group::BlockGroupDescriptor32>() as u64 * i,
 				);
 			println!("BGD {}: {:x?}", i, group_descriptor);
+			group_descriptor.print_flags();
+			if group_descriptor.is_uninitialized() {
+				continue;
+			}
 
 			let inode_table = get_offset_from_block_number(
 				block_0,
@@ -93,6 +98,47 @@ fn main() {
 					&file_arg,
 					inode_table + inode_size as u64 * j as u64,
 				);
+
+				println!("Inode:{:x}:", j + 1);
+				inode.print_fields();
+				let file_size = inode.get_file_size();
+				let inode_isize = inode.extra_isize;
+				let sb_isize = format!("0x{:X}", inode_size).cyan();
+				let true_size = format!("0x{:X}", file_size).cyan();
+				let extra_isize = format!("0x{:X}", inode_isize).cyan();
+				println!("SB Isize = {}, FileSize: {} ", sb_isize, true_size);
+				if inode.inode_has_extended_attrs() {
+					println!("extra size: {}", extra_isize);
+				}
+				if inode.get_ext_attrs_addr() != 0 {
+					let extoffset = get_offset_from_block_number(
+						block_0,
+						inode.get_ext_attrs_addr() as u64,
+						block_size,
+					) as u64;
+					type hdr_type = ext4::extattrs::ExtendedAttrBlock;
+					let extadd = read_header_from_offset::<hdr_type>(&file_arg, extoffset);
+					println!("EXTATTR: {:#?}", extadd);
+					println!("size of header:{:x?}", size_of::<hdr_type>());
+					let size_of_hdr = size_of::<hdr_type>() as u64;
+					let mut entry_offset = 0;
+					loop {
+						let extblockbytes = read_bytes_from_file(
+							&file_arg,
+							extoffset + entry_offset + size_of_hdr,
+							0xff + ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME as usize,
+						);
+						//println!("{:X?}", extblockbytes);
+						let extblock = ext4::extattrs::get_extended_attr_entry(&extblockbytes);
+						if extblock.is_empty() {
+							println!("Next extended attr entry was empty.");
+							break;
+						}
+						println!("{:#X?}", extblock);
+						entry_offset +=
+							ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME + extblock.name_len as u64;
+					}
+				}
 				// print the timestamp is not zero while we're debugging
 				if inode.inode_uses_extents() {
 					let extent = inode.get_extent();
@@ -102,11 +148,9 @@ fn main() {
 					let bytes = read_bytes_from_file(&file_arg, offset, 263);
 					let dirent = get_dir_ent(&bytes[..]);
 					println!("dirent: {:x?}", dirent);
+					println!("dirent FileType: {}", dirent.filetype_to_str());
 				}
-				if inode.crtime != 0 {
-					println!("Inode:{} {:x?}", j, inode);
-					inode.print_fields();
-				}
+				if inode.inode_has_extended_attrs() {}
 			}
 		}
 	} else {
