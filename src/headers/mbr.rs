@@ -1,4 +1,6 @@
+use super::reader::*;
 use crate::headers::disx86::disassemble;
+use colored::*;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use serde::Deserialize;
@@ -20,6 +22,19 @@ impl Mbr {
     pub fn disassemble_bootstrap_sector(&self) {
         disassemble(&self.bootstrap, 16, 0, self.bootstrap.len());
     }
+    pub fn get_partition(&self, index: usize) -> MbrPartitionEntry {
+        return self.partitions[index];
+    }
+    pub fn pretty_print(&self) {
+        println!(
+            "MBR (skipping bootstrap...) disk_sig: {:x?} reserved:{}",
+            self.opt_disk_sig, self.opt_reserved,
+        );
+        for partition in self.partitions.iter() {
+            partition.pretty_print();
+        }
+        println!("{}", self.boot_sector_sig);
+    }
 }
 
 impl fmt::Debug for Mbr {
@@ -35,7 +50,7 @@ impl fmt::Debug for Mbr {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Copy)]
 pub struct MbrPartitionEntry {
     pub attributes: u8,           // Drive attributes (bit 7 set = active or bootable)
     pub partition_start: [u8; 3], // CHS Address of partition start
@@ -45,6 +60,27 @@ pub struct MbrPartitionEntry {
     pub sectors_in_partition: u32, // Number of sectors in partition
 }
 
+impl MbrPartitionEntry {
+    pub fn pretty_print(&self) {
+        let active = (self.attributes & 0x80) != 0;
+        let partition_label: String;
+        println!("{}", "Partitions:".purple().to_string());
+        match PartitionId::from_u8(self.partition_type) {
+            None => {
+                partition_label = "Unknown".bright_purple().to_string();
+            }
+            Some(x) => {
+                partition_label = format!("{:?}", x).bright_blue().to_string();
+            }
+        }
+        println!(
+            "{}",
+            format!("[{}] is_active: {}\nchs start: {:x?}\nchs last part sector: {:x?}\nlba of part start: {:x?}\nsectors in partition: {:x?}", partition_label, print_bool(active), self.partition_start, self.last_partition_sector,self.lba_of_partition_start, self.sectors_in_partition)
+        );
+    }
+}
+
+// this one sucks it doesn't have fun colors
 impl fmt::Debug for MbrPartitionEntry {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let active = (self.attributes & 0x80) != 0;

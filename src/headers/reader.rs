@@ -16,8 +16,8 @@ pub fn get_offset_from_block_number(block_0: u64, index: u64, block_size: u64) -
 }
 
 pub fn read_bytes_from_file(file_arg: &str, offset: u64, size: usize) -> Vec<u8> {
-    let output = format!("Reading from 0x{:X}", offset).yellow();
-    println!("{}", output);
+    //let output = format!("Reading from 0x{:X}", offset).yellow();
+    //println!("{}", output);
     let mut file = File::open(file_arg).unwrap();
     let res = file.seek(SeekFrom::Start(offset)).unwrap();
     if res != offset {

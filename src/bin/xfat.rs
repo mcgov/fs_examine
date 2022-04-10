@@ -56,8 +56,10 @@ const SMOL_BLOCKS: u64 = 512; //this needs a rename
 fn main() {
 	let file_arg = env::args().nth(1).unwrap();
 	let mbr = read_header_from_offset::<Mbr>(&file_arg, 0);
-	println!("{:?}", mbr);
-	let gpt = read_header_from_offset::<Gpt>(&file_arg, 1 * SMOL_BLOCKS); // make one to enable code checks
+	mbr.pretty_print();
+	//can add parition sizes to get expected image size.
+	let _gpt_part = mbr.get_partition(0);
+	let gpt = read_header_from_offset::<Gpt>(&file_arg, 1 * SMOL_BLOCKS);
 	println!("{:x?}", gpt);
 	gpt.print_partition_table(&file_arg);
 	let gpe_ext4 = gpt.get_parition(&file_arg, 0);
