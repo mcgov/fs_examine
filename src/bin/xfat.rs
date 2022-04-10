@@ -98,11 +98,10 @@ fn main() {
 				let inode =
 					read_header_from_offset::<ext4::inode::Inode>(&file_arg, current_offset);
 
-				println!("Inode:{:x}:", j + 1);
+				println!("Inode: 0x{:X}:", j + 1);
 				inode.print_fields();
 				let file_size = inode.get_file_size();
 				let inode_isize = inode.extra_isize;
-				let sb_isize = format!("0x{:X}", inode_size).cyan();
 				let true_size = format!("0x{:X}", file_size).cyan();
 				let extra_isize = format!("0x{:X}", inode_isize).cyan();
 				println!("FileSize: {} ", true_size);
@@ -113,11 +112,11 @@ fn main() {
 						inode.get_ext_attrs_addr() as u64,
 						block_size,
 					) as u64;
-					type hdr_type = ext4::extattrs::ExtendedAttrBlock;
-					let extadd = read_header_from_offset::<hdr_type>(&file_arg, extoffset);
+					type HdrType = ext4::extattrs::ExtendedAttrBlock;
+					let extadd = read_header_from_offset::<HdrType>(&file_arg, extoffset);
 					println!("EXTATTR: {:#X?}", extadd);
-					println!("size of header: 0x{:x?}", size_of::<hdr_type>());
-					let size_of_hdr = size_of::<hdr_type>() as u64;
+					println!("size of header: 0x{:x?}", size_of::<HdrType>());
+					let size_of_hdr = size_of::<HdrType>() as u64;
 					let mut entry_offset = 0;
 					loop {
 						let extblockbytes = read_bytes_from_file(
