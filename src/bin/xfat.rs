@@ -94,10 +94,9 @@ fn main() {
 			) as u64;
 			let inode_size = superblock.inode_size;
 			for j in 0..superblock.inodes_per_group - group_descriptor.free_inodes_count_lo as u32 {
-				let inode = read_header_from_offset::<ext4::inode::Inode>(
-					&file_arg,
-					inode_table + inode_size as u64 * j as u64,
-				);
+				let current_offset = inode_table + inode_size as u64 * j as u64;
+				let inode =
+					read_header_from_offset::<ext4::inode::Inode>(&file_arg, current_offset);
 
 				println!("Inode:{:x}:", j + 1);
 				inode.print_fields();
@@ -106,10 +105,8 @@ fn main() {
 				let sb_isize = format!("0x{:X}", inode_size).cyan();
 				let true_size = format!("0x{:X}", file_size).cyan();
 				let extra_isize = format!("0x{:X}", inode_isize).cyan();
-				println!("SB Isize = {}, FileSize: {} ", sb_isize, true_size);
-				if inode.inode_has_extended_attrs() {
-					println!("extra size: {}", extra_isize);
-				}
+				println!("FileSize: {} ", true_size);
+				println!("extra size: {}", extra_isize);
 				if inode.get_ext_attrs_addr() != 0 {
 					let extoffset = get_offset_from_block_number(
 						block_0,
@@ -118,8 +115,8 @@ fn main() {
 					) as u64;
 					type hdr_type = ext4::extattrs::ExtendedAttrBlock;
 					let extadd = read_header_from_offset::<hdr_type>(&file_arg, extoffset);
-					println!("EXTATTR: {:#?}", extadd);
-					println!("size of header:{:x?}", size_of::<hdr_type>());
+					println!("EXTATTR: {:#X?}", extadd);
+					println!("size of header: 0x{:x?}", size_of::<hdr_type>());
 					let size_of_hdr = size_of::<hdr_type>() as u64;
 					let mut entry_offset = 0;
 					loop {
@@ -131,7 +128,10 @@ fn main() {
 						//println!("{:X?}", extblockbytes);
 						let extblock = ext4::extattrs::get_extended_attr_entry(&extblockbytes);
 						if extblock.is_empty() {
-							println!("Next extended attr entry was empty.");
+							println!(
+								"{}",
+								"Next extended attr entry was empty.".cyan().to_string()
+							);
 							break;
 						}
 						println!("{:#X?}", extblock);
@@ -145,10 +145,25 @@ fn main() {
 					println!("Extent: {:#X?}", extent);
 					let read_block = extent.leaf.get_block();
 					let offset = get_offset_from_block_number(block_0, read_block, block_size);
-					let bytes = read_bytes_from_file(&file_arg, offset, 263);
-					let dirent = get_dir_ent(&bytes[..]);
-					println!("dirent: {:x?}", dirent);
-					println!("dirent FileType: {}", dirent.filetype_to_str());
+					let mut table_offset = 0;
+					loop {
+						let bytes = read_bytes_from_file(&file_arg, offset + table_offset, 263);
+						let dirent = get_dir_ent(&bytes[..]);
+						if dirent.inode == 0 || dirent.namelen == 0 {
+							break;
+						} else {
+							println!("dirent: {:x?}", dirent);
+							println!("file_type: {}", dirent.filetype_to_str());
+						}
+						table_offset += dirent.record_size() as u64;
+						// this logic isn't right yet
+						if table_offset == block_size
+							|| dirent.filetype == dirent::file_type::FAKE_TAIL_ENTRY_CHECKSUM
+						{
+							break;
+						}
+						//honestly most of this logic *waves* isn't right
+					}
 				}
 				if inode.inode_has_extended_attrs() {}
 			}

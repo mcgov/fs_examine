@@ -9,11 +9,11 @@ use serde::{Deserialize, Deserializer};
 //pub $3 : u$2, //$4
 #[derive(Debug)]
 pub struct DirEnt {
-    inode: u32,   // 	Number of the inode that this directory entry points to.
-    rec_len: u16, // 	Length of this directory entry.
-    namelen: u8,  // 	Length of the file name.
-    filetype: u8, // 	File type code, one of:
-    filename: String,
+    pub inode: u32,   // 	Number of the inode that this directory entry points to.
+    pub rec_len: u16, // 	Length of this directory entry.
+    pub namelen: u8,  // 	Length of the file name.
+    pub filetype: u8, // 	File type code, one of:
+    pub filename: String,
 }
 
 pub fn get_dir_ent(bytes: &[u8]) -> DirEnt {
@@ -21,8 +21,8 @@ pub fn get_dir_ent(bytes: &[u8]) -> DirEnt {
     let rec_len_u = u16::from_le_bytes(dir);
     let inode_arr: [u8; 4] = [bytes[0], bytes[1], bytes[2], bytes[3]];
     let inode_u = u32::from_le_bytes(inode_arr);
-    println!("namelen: {:x}", bytes[6]);
-    let filename = String::from_utf8(bytes[..bytes[6] as usize].to_vec()).unwrap();
+    //println!("namelen: {:x}", bytes[6]);
+    let filename = String::from_utf8(bytes[8..8 + bytes[6] as usize].to_vec()).unwrap();
     DirEnt {
         inode: inode_u,
         rec_len: rec_len_u,
@@ -33,6 +33,12 @@ pub fn get_dir_ent(bytes: &[u8]) -> DirEnt {
 }
 
 impl DirEnt {
+    pub fn record_size(&self) -> u64 {
+        if self.rec_len != 0 {
+            return self.rec_len as u64;
+        }
+        8
+    }
     pub fn filetype_to_str(&self) -> String {
         let ft: &str;
         match self.filetype {
@@ -59,6 +65,9 @@ impl DirEnt {
             }
             file_type::SYMLINK => {
                 ft = stringify!(file_type::SYMLINK);
+            }
+            file_type::FAKE_TAIL_ENTRY_CHECKSUM => {
+                ft = stringify!(file_type::FAKE_TAIL_ENTRY_CHECKSUM);
             }
             x => {
                 panic!("Error, unknown filetype for Dirent: {:X}", x);
