@@ -3,7 +3,6 @@ use colored::*;
 use std::env;
 use std::mem::size_of;
 use xfat::headers::ext4::dirent::*;
-use xfat::headers::ext4::superblock::compat_bitflags;
 use xfat::headers::ext4::superblock::Superblock;
 use xfat::headers::ext4::*;
 use xfat::headers::gpt::partitions::PartitionEntry;

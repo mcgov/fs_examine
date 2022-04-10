@@ -1,9 +1,4 @@
-use crate::headers::reader::*;
 use colored::*;
-use serde;
-use serde::de;
-use serde::de::SeqAccess;
-use serde::{Deserialize, Deserializer};
 
 // __(le|u)([0-9]+)\s+([a-z_]+)(.*)
 //pub $3 : u$2, //$4
@@ -88,11 +83,4 @@ pub mod file_type {
     pub const SOCKET: u8 = 0x6; // 	Socket.
     pub const SYMLINK: u8 = 0x7; //	Symbolic link.
     pub const FAKE_TAIL_ENTRY_CHECKSUM: u8 = 0xDE;
-}
-
-pub fn filename_deserializer<'de, D>(d: D) -> Result<String, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    Ok("".to_string())
 }
