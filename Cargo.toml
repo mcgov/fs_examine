@@ -19,6 +19,8 @@ lazy_static = "1.4.0"
 chrono = "0.4.19"
 nameof = "1.2.2"
 colored = "2"
+crc = "2.1.0"
+
 [dependencies.iced-x86]
 version = "1.17.0"
 default-features = false

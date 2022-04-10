@@ -10,6 +10,7 @@ extern crate chrono;
 extern crate colored;
 use chrono::prelude::*;
 use colored::*;
+use crc::{Algorithm, Crc};
 
 pub fn get_offset_from_block_number(block_0: u64, index: u64, block_size: u64) -> u64 {
     block_0 + index * block_size

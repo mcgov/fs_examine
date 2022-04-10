@@ -1,5 +1,4 @@
 use iced_x86::*;
-
 pub fn disassemble(bytes: &[u8], bitness: u32, rip: u64, length: usize) {
     let mut decoder = Decoder::with_ip(bitness, bytes, rip, DecoderOptions::NONE);
     let mut formatter = NasmFormatter::new();

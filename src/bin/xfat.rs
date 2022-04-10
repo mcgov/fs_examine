@@ -1,7 +1,9 @@
 use ::xfat::headers::ext4;
 use colored::*;
+
 use std::env;
 use std::mem::size_of;
+use xfat::crc32_structure_from_disk;
 use xfat::headers::ext4::dirent::*;
 use xfat::headers::ext4::superblock::Superblock;
 use xfat::headers::ext4::*;
@@ -60,8 +62,11 @@ fn main() {
 	//can add parition sizes to get expected image size.
 	let _gpt_part = mbr.get_partition(0);
 	let gpt = read_header_from_offset::<Gpt>(&file_arg, 1 * SMOL_BLOCKS);
-	println!("{:x?}", gpt);
+	let chksum = crc32_structure_from_disk::<Gpt>(&file_arg, &gpt, SMOL_BLOCKS as usize);
 	gpt.print_partition_table(&file_arg);
+
+	println!("LETS SEE {} ", print_bool(chksum == gpt.crc32));
+	return;
 	let gpe_ext4 = gpt.get_parition(&file_arg, 0);
 	// block offsets are from block_0 on the ext* partition.
 	let ext4_block_0 = gpe_ext4.first_lba * SMOL_BLOCKS;
