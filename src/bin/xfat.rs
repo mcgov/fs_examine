@@ -162,23 +162,39 @@ fn main() {
 					let read_block = extent.leaf.get_block();
 					let offset = get_offset_from_block_number(block_0, read_block, block_size);
 					let mut table_offset = 0;
-					loop {
-						let bytes = read_bytes_from_file(&file_arg, offset + table_offset, 263);
-						let dirent = get_dir_ent(&bytes[..]);
-						if dirent.inode == 0 || dirent.namelen == 0 {
-							break;
-						} else {
+					// files and directories are different SO I GUESS ITS NOT ALL FILES
+					if j + 1 != superblock.journal_inum
+						&& bitfield_fetch::<u16>(
+							inode.mode,
+							inode::filemode_bitflags::mutex::S_IFREG,
+						) {
+						let bytes =
+							read_bytes_from_file(&file_arg, offset, inode.get_file_size() as usize);
+						println!("Found file content... ");
+						println!(
+							"{}",
+							String::from_utf8(bytes).unwrap().bright_green().to_string()
+						);
+					} else if bitfield_fetch::<u16>(
+						inode.mode,
+						inode::filemode_bitflags::mutex::S_IFDIR,
+					) {
+						loop {
+							let bytes = read_bytes_from_file(&file_arg, offset + table_offset, 263);
+							let dirent = get_dir_ent(&bytes[..]);
 							println!("dirent: {:x?}", dirent);
 							println!("file_type: {}", dirent.filetype_to_str());
+							// this logic isn't right yet
+							if dirent.inode == 0
+								|| dirent.rec_len as u64 + table_offset == block_size
+								|| table_offset == block_size || dirent.filetype
+								== dirent::file_type::FAKE_TAIL_ENTRY_CHECKSUM
+							{
+								break;
+							}
+							table_offset += dirent.record_size() as u64;
+							//honestly most of this logic *waves* isn't right
 						}
-						table_offset += dirent.record_size() as u64;
-						// this logic isn't right yet
-						if table_offset == block_size
-							|| dirent.filetype == dirent::file_type::FAKE_TAIL_ENTRY_CHECKSUM
-						{
-							break;
-						}
-						//honestly most of this logic *waves* isn't right
 					}
 				}
 				if inode.inode_has_extended_attrs() {}

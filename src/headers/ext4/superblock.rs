@@ -164,6 +164,19 @@ impl Superblock {
 
     pub fn debug_print_some_stuf(&self) {
         println!("{:x?}", self);
+        println!(
+            "Inodes in use: {}",
+            self.inodes_count - self.free_inodes_count
+        );
+        println!(
+            "Blocks in use: {}",
+            self.blocks_count_lo - self.free_blocks_count_lo
+        );
+        println!(
+            "Blocks in use: {}",
+            self.blocks_count_lo - self.free_blocks_count_lo
+        );
+
         println!("volume name: {}", self.volume_name());
         println!("mount opts: {}", self.mount_opts());
         println!("last mounted: {}", self.last_mounted());
