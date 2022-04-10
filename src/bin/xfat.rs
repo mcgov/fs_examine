@@ -10,6 +10,23 @@ use xfat::headers::gpt::partitions::PartitionEntry;
 use xfat::headers::gpt::Gpt;
 use xfat::headers::mbr::Mbr;
 use xfat::headers::reader::*;
+
+/*
+███████╗██╗   ██╗██████╗ ███████╗██████╗
+██╔════╝██║   ██║██╔══██╗██╔════╝██╔══██╗
+███████╗██║   ██║██████╔╝█████╗  ██████╔╝
+╚════██║██║   ██║██╔═══╝ ██╔══╝  ██╔══██╗
+███████║╚██████╔╝██║     ███████╗██║  ██║
+╚══════╝ ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═╝
+██████╗ ██╗      ██████╗  ██████╗██╗  ██╗
+██╔══██╗██║     ██╔═══██╗██╔════╝██║ ██╔╝
+██████╔╝██║     ██║   ██║██║     █████╔╝
+██╔══██╗██║     ██║   ██║██║     ██╔═██╗
+██████╔╝███████╗╚██████╔╝╚██████╗██║  ██╗
+╚═════╝ ╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝
+enjoy this fun header and don't bother reading this main it's
+just for me to mess around and is super messy*/
+
 //use xfat::headers::xfs::ondiskhdr::XfsOndiskHeader;
 /*
 	let processed_header = read_header_from_file_unsafe::<BootSector, BootSectorRaw>(&file_arg);
