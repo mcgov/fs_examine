@@ -1,5 +1,6 @@
 use crate::headers::gpt::uuids;
 use crate::headers::reader::{bitfield_fetch, uuid_deserialize};
+use compiled_uuid::uuid;
 use serde::de;
 use serde::{Deserialize, Deserializer};
 use serde_big_array::BigArray;
@@ -148,6 +149,9 @@ impl PartitionEntry {
             None => "Unknown partition type",
             Some(v) => v,
         }
+    }
+    pub fn is_in_use(&self) -> bool {
+        self.type_guid != uuid!("00000000-0000-0000-0000-000000000000")
     }
 }
 

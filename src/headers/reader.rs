@@ -8,9 +8,12 @@ use std::mem::size_of;
 use uuid::*;
 extern crate chrono;
 extern crate colored;
-
 use chrono::prelude::*;
 use colored::*;
+
+pub fn get_offset_from_block_number(block_0: u64, index: u64, block_size: u64) -> u64 {
+    block_0 + index * block_size
+}
 
 pub fn read_bytes_from_file(file_arg: &str, offset: u64, size: usize) -> Vec<u8> {
     let output = format!("Reading from 0x{:X}", offset).yellow();

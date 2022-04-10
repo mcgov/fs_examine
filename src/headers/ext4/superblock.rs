@@ -124,6 +124,25 @@ pub struct Superblock {
 }
 
 impl Superblock {
+    pub fn number_of_groups(&self) -> u64 {
+        let mut total_blocks: u64 = self.blocks_count_lo as u64;
+        if self.uses_64bit() {
+            total_blocks |= (self.blocks_count_hi as u64) << 32;
+        }
+        total_blocks / self.blocks_per_group as u64
+    }
+    pub fn block_size_bytes(&self) -> u64 {
+        1024 << self.log_block_size
+    }
+
+    pub fn get_group_descriptor_table_offset(&self, first_lba: u64) -> u64 {
+        get_offset_from_block_number(
+            first_lba * crate::headers::constants::SMOL_BLOCKS,
+            1 + self.superblock as u64,
+            self.block_size_bytes(),
+        )
+    }
+
     pub fn volume_name(&self) -> String {
         std::string::String::from_utf8(self.volume_name.to_vec()).unwrap()
     }

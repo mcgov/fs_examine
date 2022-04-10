@@ -85,6 +85,10 @@ impl Inode {
         println!("extended attrs pointer: 0x{:x}", self.get_ext_attrs_addr());
     }
 
+    pub fn uses_hash_tree_directories(&self) -> bool {
+        bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_INDEX) //whats up w this flag name btw
+    }
+
     pub fn filetype_to_str(&self) -> String {
         let ft: &str;
         match 0xF000 & self.mode {

@@ -5,7 +5,6 @@ use std::mem::size_of;
 use xfat::headers::ext4::dirent::*;
 use xfat::headers::ext4::superblock::Superblock;
 use xfat::headers::ext4::*;
-use xfat::headers::gpt::partitions::PartitionEntry;
 use xfat::headers::gpt::Gpt;
 use xfat::headers::mbr::Mbr;
 use xfat::headers::reader::*;
@@ -52,45 +51,30 @@ just for me to mess around and is super messy*/
 		extended_boot_sector.section_is_valid(main_exfat.bytes_per_sector_shift)
 	);
 */
-const BLOCK_SIZE: u64 = 512; //this needs a rename
+const SMOL_BLOCKS: u64 = 512; //this needs a rename
 
 fn main() {
 	let file_arg = env::args().nth(1).unwrap();
 	let mbr = read_header_from_offset::<Mbr>(&file_arg, 0);
 	println!("{:?}", mbr);
-	let gpt = read_header_from_offset::<Gpt>(&file_arg, 1 * BLOCK_SIZE); // make one to enable code checks
+	let gpt = read_header_from_offset::<Gpt>(&file_arg, 1 * SMOL_BLOCKS); // make one to enable code checks
 	println!("{:x?}", gpt);
-	for i in 0..7 as u64 {
-		let entry = read_header_from_offset::<PartitionEntry>(
-			&file_arg,
-			gpt.gpe_table_start * BLOCK_SIZE + i * gpt.gpe_table_entry_size as u64,
-		);
-		println!("{}", entry.name());
-		println!("{:x?}", entry);
-		println!("{:?}", entry.type_to_str());
-	}
-	let ext4 =
-		read_header_from_offset::<PartitionEntry>(&file_arg, gpt.gpe_table_start * BLOCK_SIZE);
-
+	gpt.print_partition_table(&file_arg);
+	let gpe_ext4 = gpt.get_parition(&file_arg, 0);
 	// block offsets are from block_0 on the ext* partition.
-	let block_0 = ext4.first_lba * BLOCK_SIZE;
-	let super_block_offset = 1024 + block_0;
-	let superblock = read_header_from_offset::<Superblock>(&file_arg, super_block_offset); //ext4 pads 1024 bytes ahead of block0
+	let ext4_block_0 = gpe_ext4.first_lba * SMOL_BLOCKS;
+	// ext4 first block has 1024 bytes of padding before superblock.
+	let super_block_offset = 1024 + ext4_block_0;
+	let superblock = read_header_from_offset::<Superblock>(&file_arg, super_block_offset);
 	superblock.debug_print_some_stuf();
-	let block_size = 1024 << superblock.log_block_size;
-
-	fn get_offset_from_block_number(block_0: u64, index: u64, block_size: u64) -> u64 {
-		block_0 + index * block_size
-	}
+	let block_size = superblock.block_size_bytes();
 
 	println!("BLOCKSIZE: {}", block_size);
-	// NOTE there is a subtlety to this if the block size is not 1024, just adding 1024 isn't enough
-	// the superblock is either in block 0 +1024bytes if it's large enough or or block 1 if it's 1024
-	// the BGD table is at the start of the next block, so either 2 or 1 if 0 is large enough.
+
 	let block_group_desc_table_offset =
-		get_offset_from_block_number(block_0, 1 + superblock.superblock as u64, block_size);
+		superblock.get_group_descriptor_table_offset(gpe_ext4.first_lba);
 	if !superblock.uses_64bit() {
-		for i in 0..10 {
+		for i in 0..superblock.number_of_groups() {
 			let group_descriptor =
 				read_header_from_offset::<ext4::block_group::BlockGroupDescriptor32>(
 					&file_arg,
@@ -104,7 +88,7 @@ fn main() {
 			}
 
 			let inode_table = get_offset_from_block_number(
-				block_0,
+				ext4_block_0,
 				group_descriptor.inode_table_lo as u64,
 				block_size,
 			) as u64;
@@ -124,7 +108,7 @@ fn main() {
 				println!("extra size: {}", extra_isize);
 				if inode.get_ext_attrs_addr() != 0 {
 					let extoffset = get_offset_from_block_number(
-						block_0,
+						ext4_block_0,
 						inode.get_ext_attrs_addr() as u64,
 						block_size,
 					) as u64;
@@ -159,7 +143,7 @@ fn main() {
 					let extent = inode.get_extent();
 					println!("Extent: {:#X?}", extent);
 					let read_block = extent.leaf.get_block();
-					let offset = get_offset_from_block_number(block_0, read_block, block_size);
+					let offset = get_offset_from_block_number(ext4_block_0, read_block, block_size);
 					let mut table_offset = 0;
 					// files and directories are different SO I GUESS ITS NOT ALL FILES
 					if j + 1 != superblock.journal_inum
@@ -178,6 +162,12 @@ fn main() {
 						inode.mode,
 						inode::filemode_bitflags::mutex::S_IFDIR,
 					) {
+						if inode.uses_hash_tree_directories() {
+							println!(
+								"{}",
+								"Hash tree directories not implemented. Probably going to miss reading some directories here 😢".red().to_string()
+							);
+						}
 						loop {
 							let bytes = read_bytes_from_file(&file_arg, offset + table_offset, 263);
 							let dirent = get_dir_ent(&bytes[..]);
