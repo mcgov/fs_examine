@@ -71,6 +71,8 @@ fn main() {
 
 	println!("BLOCKSIZE: {}", block_size);
 
+	// all of this below is ext4 specific
+
 	let block_group_desc_table_offset =
 		superblock.get_group_descriptor_table_offset(gpe_ext4.first_lba);
 	if !superblock.uses_64bit() {
