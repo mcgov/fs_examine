@@ -3,13 +3,13 @@ use colored::*;
 
 use std::env;
 use std::mem::size_of;
-use xfat::crc32_structure_from_disk;
 use xfat::headers::ext4::dirent::*;
 use xfat::headers::ext4::superblock::Superblock;
 use xfat::headers::ext4::*;
 use xfat::headers::gpt::Gpt;
 use xfat::headers::mbr::Mbr;
 use xfat::headers::reader::*;
+use xfat::headers::summer::crc32_structure_from_disk;
 
 /*
 ███████╗██╗   ██╗██████╗ ███████╗██████╗

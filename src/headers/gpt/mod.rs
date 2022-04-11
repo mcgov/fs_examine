@@ -3,11 +3,11 @@ use serde::Deserialize;
 use serde_big_array::BigArray;
 pub mod partitions;
 pub mod uuids;
+use super::summer::*;
 use crate::headers::constants::SMOL_BLOCKS;
 use crate::headers::reader::*;
-use crate::*;
 use colored::*;
-use crc::{Algorithm, Crc, CRC_32_ISCSI};
+use crc::Algorithm;
 use std::ops::Range;
 
 #[derive(Deserialize, Debug)]
@@ -38,7 +38,7 @@ impl Summable for Gpt {
             end: 0x14,
         }]
     }
-    fn range_to_sum(&self) -> Range<usize> {
+    fn range_to_include(&self) -> Range<usize> {
         Range {
             start: 0,
             end: 0x5c, //last reserved field is not included in sum.
