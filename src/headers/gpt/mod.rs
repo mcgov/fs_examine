@@ -104,7 +104,7 @@ impl Gpt {
                     "START: GPT-ENTRY -----------------------------------".purple()
                 );
                 println!(
-                    "Name: {} Type:{}",
+                    "Name: {} Type: {}",
                     entry.name().bright_blue(),
                     entry.type_to_str().cyan()
                 );
