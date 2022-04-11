@@ -6,6 +6,7 @@ pub mod uuids;
 use super::summer::*;
 use crate::headers::constants::SMOL_BLOCKS;
 use crate::headers::reader::*;
+use crate::prettify_output;
 use colored::*;
 use crc::Algorithm;
 use std::ops::Range;
@@ -88,43 +89,29 @@ impl Gpt {
     // }
 
     pub fn print_partition_table(&self, file_arg: &str) {
-        println!(
-            "{}",
-            "START: GPT-TABLE -----------------------------------".bright_purple()
-        );
         let mut unused_counter = 0;
-        for i in 0..self.gpe_table_entries as u64 {
-            let entry = read_header_from_offset::<PartitionEntry>(
-                &file_arg,
-                self.gpe_table_start * SMOL_BLOCKS + i * self.gpe_table_entry_size as u64,
-            );
-            if entry.is_in_use() {
-                println!(
-                    "{}",
-                    "START: GPT-ENTRY -----------------------------------".purple()
+        prettify_output!(PartitionEntry, purple, bright_purple, {
+            for i in 0..self.gpe_table_entries as u64 {
+                let entry = read_header_from_offset::<PartitionEntry>(
+                    &file_arg,
+                    self.gpe_table_start * SMOL_BLOCKS + i * self.gpe_table_entry_size as u64,
                 );
-                println!(
-                    "Name: {} Type: {}",
-                    entry.name().bright_blue(),
-                    entry.type_to_str().cyan()
-                );
-                println!("{:x?}", entry);
-                println!(
-                    "{}",
-                    "----------------------------------- END: GPT-ENTRY".purple()
-                );
-            } else {
-                unused_counter += 1;
+                if entry.is_in_use() {
+                    println!(
+                        "Name: {} Type: {}",
+                        entry.name().bright_blue(),
+                        entry.type_to_str().cyan()
+                    );
+                    println!("{:x?}", entry);
+                } else {
+                    unused_counter += 1;
+                }
             }
-        }
+        });
 
         println!(
             "{}",
             format!("skipped {} unused partition entries", unused_counter).blue()
-        );
-        println!(
-            "{}",
-            "----------------------------------- END: GPT-TABLE".bright_purple()
         );
     }
 
@@ -142,8 +129,8 @@ impl Gpt {
         let table_crc = crate::headers::summer::crc32_bytes_from_disk(
             file_arg,
             self.crc_parameters(),
-            self.table_offset() as usize,
-            self.gpe_table_entries as usize * self.gpe_table_entry_size as usize,
+            self.table_offset(),
+            self.gpe_table_entries as u64 * self.gpe_table_entry_size as u64,
         );
         let comparison = table_crc == self.gpe_table_crc32;
         print_valid_checksum("GPT TABLE", comparison);

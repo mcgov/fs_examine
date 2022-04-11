@@ -1,4 +1,5 @@
 use bincode::deserialize;
+use byteorder::{BigEndian, ByteOrder, LittleEndian};
 use num_traits::PrimInt;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer};
@@ -11,19 +12,24 @@ extern crate colored;
 use chrono::prelude::*;
 use colored::*;
 
+pub enum Endianness {
+    Big,
+    Little,
+}
+
 pub fn get_offset_from_block_number(block_0: u64, index: u64, block_size: u64) -> u64 {
     block_0 + index * block_size
 }
 
-pub fn read_bytes_from_file(file_arg: &str, offset: u64, size: usize) -> Vec<u8> {
+pub fn read_bytes_from_file(file_arg: &str, offset: u64, size: u64) -> Vec<u8> {
     //let output = format!("Reading from 0x{:X}", offset).yellow();
     //println!("{}", output);
     let mut file = File::open(file_arg).unwrap();
-    let res = file.seek(SeekFrom::Start(offset)).unwrap();
+    let res = file.seek(SeekFrom::Start(offset as u64)).unwrap();
     if res != offset {
         panic!("Failed to seek to offset\n");
     }
-    let mut file_data: Vec<u8> = vec![0; size];
+    let mut file_data: Vec<u8> = vec![0; size.try_into().unwrap()];
     file.read_exact(&mut file_data[..]).unwrap();
     file_data
 }
@@ -33,7 +39,7 @@ pub fn read_header_from_offset<Header: Sized + DeserializeOwned>(
     offset: u64,
 ) -> Header {
     let header: Header = {
-        let size = size_of::<Header>();
+        let size = size_of::<Header>() as u64;
         let file_data = read_bytes_from_file(file_arg, offset, size);
         // read the bytes into the struct
         read_header_from_bytevec::<Header>(file_data)
@@ -159,5 +165,57 @@ pub fn print_bool(boolean: bool) -> String {
         return result.green().to_string();
     } else {
         return result.red().to_string();
+    }
+}
+
+pub trait HasHeaderMagic {
+    fn magic_field_offset(&self) -> u64;
+    fn magic_field_size(&self) -> u64;
+    fn magic_field_endianness(&self) -> Endianness;
+    fn magic_field_upcast(&self) -> u128;
+
+    // this should check the magic value based on the partition start
+    // for FS main headers or from the header start for headers
+    fn check_magic_field(&self, file_arg: &str, offset: u64) -> bool {
+        let magic_bytes = read_bytes_from_file(
+            &file_arg,
+            offset + self.magic_field_offset(),
+            self.magic_field_size(),
+        );
+
+        let found_magic: u128;
+        macro_rules! upcast {
+            ($endian:ty, $fn:ident) => {
+                <$endian>::$fn(&magic_bytes[..]) as u128
+            };
+        }
+        macro_rules! match_types {
+            ($endian:ty) => {
+                match self.magic_field_size() {
+                    8 => {
+                        found_magic = upcast!($endian, read_u64);
+                    }
+                    4 => {
+                        found_magic = upcast!($endian, read_u32);
+                    }
+                    2 => {
+                        found_magic = upcast!($endian, read_u16);
+                    }
+                    _default => {
+                        panic!("Invalid size for magic field value");
+                    }
+                }
+            };
+        }
+        match self.magic_field_endianness() {
+            Endianness::Big => {
+                match_types!(BigEndian)
+            }
+            Endianness::Little => {
+                match_types!(LittleEndian)
+            }
+        }
+
+        found_magic == self.magic_field_upcast()
     }
 }

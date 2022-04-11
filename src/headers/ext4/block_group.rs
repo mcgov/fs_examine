@@ -1,6 +1,7 @@
 use crate::headers::reader::*;
+use crate::prettify_output;
+use colored::*;
 use serde::Deserialize;
-
 // __(le|u)([0-9]+)\s+([a-z_]+)(.*)
 //pub $3 : u$2, //$4
 
@@ -24,17 +25,23 @@ pub struct BlockGroupDescriptor32 {
 }
 
 impl BlockGroupDescriptor32 {
+  pub fn pretty_print(&self, index: u64) {
+    prettify_output!(BlockGroupDescriptor32, purple, bright_purple, {
+      println!("BGD {}: {:x?}", index, self);
+      self.print_flags();
+    });
+  }
   pub fn print_flags(&self) {
     println!(
-      "Inodes not initialized?: {}",
-      print_bool(bitfield_fetch::<u16>(
+      "Inodes initialized?: {}",
+      print_bool(!bitfield_fetch::<u16>(
         self.flags,
         bg_flags::EXT4_BG_INODE_UNINIT
       ))
     );
     println!(
-      "Block is uninitialized?: {}",
-      print_bool(bitfield_fetch::<u16>(
+      "Blocks initialized?: {}",
+      print_bool(!bitfield_fetch::<u16>(
         self.flags,
         bg_flags::EXT4_BG_BLOCK_UNINIT
       ))
@@ -50,7 +57,7 @@ impl BlockGroupDescriptor32 {
   pub fn is_uninitialized(&self) -> bool {
     bitfield_fetch::<u16>(self.flags, bg_flags::EXT4_BG_INODE_UNINIT)
       && bitfield_fetch::<u16>(self.flags, bg_flags::EXT4_BG_BLOCK_UNINIT)
-      && !bitfield_fetch::<u16>(self.flags, bg_flags::EXT4_BG_INODE_ZEROED)
+      && bitfield_fetch::<u16>(self.flags, bg_flags::EXT4_BG_INODE_ZEROED)
   }
 }
 

@@ -10,7 +10,6 @@ use xfat::headers::gpt::Gpt;
 use xfat::headers::mbr::Mbr;
 use xfat::headers::reader::*;
 use xfat::headers::summer;
-use xfat::headers::summer::*;
 /*
 ███████╗██╗   ██╗██████╗ ███████╗██████╗
 ██╔════╝██║   ██║██╔══██╗██╔════╝██╔══██╗
@@ -62,19 +61,21 @@ fn main() {
 	//can add parition sizes to get expected image size.
 	let _gpt_part = mbr.get_partition(0);
 	let gpt = read_header_from_offset::<Gpt>(&file_arg, SMOL_BLOCKS);
-	summer::validate_checksum::<Gpt>(&file_arg, &gpt, SMOL_BLOCKS as usize);
+	summer::struct_validate_checksum::<Gpt>(&file_arg, &gpt, SMOL_BLOCKS);
 	gpt.validate_table_checksums(&file_arg);
 	gpt.print_partition_table(&file_arg);
-	let gpe_ext4 = gpt.get_parition(&file_arg, 0);
+	let gpe_ext4 = gpt.get_parition(&file_arg, 1);
 	// block offsets are from block_0 on the ext* partition.
 	let ext4_block_0 = gpe_ext4.first_lba * SMOL_BLOCKS;
 	// ext4 first block has 1024 bytes of padding before superblock.
 	let super_block_offset = 1024 + ext4_block_0;
 	let superblock = read_header_from_offset::<Superblock>(&file_arg, super_block_offset);
+	if !superblock.check_magic_field(&file_arg, super_block_offset) {
+		println!("Magic field was invalid for this superblock");
+		return;
+	}
 	superblock.debug_print_some_stuf();
 	let block_size = superblock.block_size_bytes();
-
-	println!("BLOCKSIZE: {}", block_size);
 
 	// all of this below is ext4 specific
 
@@ -88,8 +89,7 @@ fn main() {
 					block_group_desc_table_offset
 						+ size_of::<ext4::block_group::BlockGroupDescriptor32>() as u64 * i,
 				);
-			println!("BGD {}: {:x?}", i, group_descriptor);
-			group_descriptor.print_flags();
+			group_descriptor.pretty_print(i);
 			if group_descriptor.is_uninitialized() {
 				continue;
 			}
@@ -118,7 +118,7 @@ fn main() {
 						ext4_block_0,
 						inode.get_ext_attrs_addr() as u64,
 						block_size,
-					) as u64;
+					);
 					type HdrType = ext4::extattrs::ExtendedAttrBlock;
 					let extadd = read_header_from_offset::<HdrType>(&file_arg, extoffset);
 					println!("EXTATTR: {:#X?}", extadd);
@@ -129,7 +129,7 @@ fn main() {
 						let extblockbytes = read_bytes_from_file(
 							&file_arg,
 							extoffset + entry_offset + size_of_hdr,
-							0xff + ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME as usize,
+							0xff + ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME,
 						);
 						//println!("{:X?}", extblockbytes);
 						let extblock = ext4::extattrs::get_extended_attr_entry(&extblockbytes);
@@ -158,8 +158,7 @@ fn main() {
 							inode.mode,
 							inode::filemode_bitflags::mutex::S_IFREG,
 						) {
-						let bytes =
-							read_bytes_from_file(&file_arg, offset, inode.get_file_size() as usize);
+						let bytes = read_bytes_from_file(&file_arg, offset, inode.get_file_size());
 						println!("Found file content... ");
 						println!(
 							"{}",

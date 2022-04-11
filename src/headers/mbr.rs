@@ -1,5 +1,6 @@
 use super::reader::*;
 use crate::headers::disx86::disassemble;
+use crate::prettify_output;
 use colored::*;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
@@ -22,26 +23,20 @@ impl Mbr {
     pub fn disassemble_bootstrap_sector(&self) {
         disassemble(&self.bootstrap, 16, 0, self.bootstrap.len());
     }
-    pub fn get_partition(&self, index: usize) -> MbrPartitionEntry {
-        return self.partitions[index];
+    pub fn get_partition(&self, index: u64) -> MbrPartitionEntry {
+        return self.partitions[index as usize];
     }
     pub fn pretty_print(&self) {
-        println!(
-            "{}",
-            "START: MBR -----------------------------------".purple()
-        );
-        println!(
-            "MBR (skipping bootstrap...) disk_sig: {:x?} reserved:{}",
-            self.opt_disk_sig, self.opt_reserved,
-        );
-        for partition in self.partitions.iter() {
-            partition.pretty_print();
-        }
-        println!("boot sector signature: {:x}", self.boot_sector_sig);
-        println!(
-            "{}",
-            "----------------------------------- END: MBR".purple()
-        );
+        prettify_output!(Mbr, purple, bright_purple, {
+            println!(
+                "MBR (skipping bootstrap...) disk_sig: {:x?} reserved:{}",
+                self.opt_disk_sig, self.opt_reserved,
+            );
+            for partition in self.partitions.iter() {
+                partition.pretty_print();
+            }
+            println!("boot sector signature: {:x}", self.boot_sector_sig);
+        });
     }
 }
 

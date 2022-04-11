@@ -68,6 +68,13 @@ impl Inode {
         );
         println!("{}:{}", "FILETYPE:".yellow(), self.filetype_to_str());
         println!(
+            "Root directory? (unreliable) {}",
+            print_bool(bitfield_fetch::<u32>(
+                self.flags,
+                attr_bitflags::EXT4_TOPDIR
+            ))
+        );
+        println!(
             "hashed entries?: {}",
             print_bool(bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_INDEX))
         );

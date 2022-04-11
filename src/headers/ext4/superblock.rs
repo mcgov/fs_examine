@@ -1,8 +1,11 @@
 use crate::headers::reader::*;
+use crate::prettify_output;
+use colored::*;
 use serde::Deserialize;
 use serde_big_array::BigArray;
 use std::fmt::Debug;
 use uuid::Uuid;
+
 // source of truth: https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout
 // also used https://wiki.osdev.org/Ext4
 
@@ -179,91 +182,94 @@ impl Superblock {
     }
 
     pub fn debug_print_some_stuf(&self) {
-        println!("{:x?}", self);
-        println!(
-            "Inodes in use: {}",
-            self.inodes_count - self.free_inodes_count
-        );
-        println!(
-            "Blocks in use: {}",
-            self.blocks_count_lo - self.free_blocks_count_lo
-        );
-        println!(
-            "Blocks in use: {}",
-            self.blocks_count_lo - self.free_blocks_count_lo
-        );
+        prettify_output!(Superblock, purple, bright_purple, {
+            println!("{:x?}", self);
+            println!(
+                "Inodes in use: {}",
+                self.inodes_count - self.free_inodes_count
+            );
+            println!(
+                "Blocks in use: {}",
+                self.blocks_count_lo - self.free_blocks_count_lo
+            );
+            println!(
+                "Blocks in use: {}",
+                self.blocks_count_lo - self.free_blocks_count_lo
+            );
 
-        println!("volume name: {}", self.volume_name());
-        println!("mount opts: {}", self.mount_opts());
-        println!("last mounted: {}", self.last_mounted());
-        println!("first_error: {}", self.first_error_func());
-        println!(
-            "last check : {}",
-            timestamp_to_string(self.last_check as u64)
-        );
-        println!(
-            "Ext4 Dynamic rev?: {}",
-            print_bool(self.version_major == constants::EXT4_DYNAMIC_REV)
-        );
-        println!("64bit_support : {}", print_bool(self.uses_64bit()));
-        println!("Ext Attrs : {}", print_bool(self.uses_ext_attr()));
-        println!("Flex BG : {}", print_bool(self.uses_flex_bg()));
-        println!("MMP : {}", self.uses_mmp());
-        println!("Journal (internal) : {}", self.uses_journal());
-        println!(
-            "FlexBG Size: val: {} size 0x{:X?}",
-            self.log_groups_per_flex,
-            self.flex_bg_size()
-        );
-        println!(
-            "Uses EA Inode present?: {}",
-            print_bool(bitfield_fetch::<u32>(
-                self.feature_incompat,
-                breaks_compat::USES_EA_INODE
-            ))
-        );
-        println!(
-            "Inline Data present?: {}",
-            print_bool(bitfield_fetch::<u32>(
-                self.feature_incompat,
-                breaks_compat::USES_INLINE_DATA
-            ))
-        );
-        println!(
-            "ROCompat Extra Isize info present?: {}",
-            print_bool(bitfield_fetch::<u32>(
-                self.feature_ro_compat,
-                compat_readonly::RO_COMPAT_EXTRA_ISIZE
-            ))
-        );
-        println!(
-            "Uses dirdata: {}",
-            print_bool(bitfield_fetch::<u32>(
-                self.feature_incompat,
-                breaks_compat::USES_DIRDATA
-            ))
-        );
-        println!(
-            "FILETYPE flag set: {}",
-            print_bool(bitfield_fetch::<u32>(
-                self.feature_incompat,
-                breaks_compat::USES_FILETYPE
-            ))
-        );
-        println!(
-            "META_BG flag set: {}",
-            print_bool(bitfield_fetch::<u32>(
-                self.feature_incompat,
-                breaks_compat::USES_META_BG
-            ))
-        );
-        println!(
-            "Huge Inodes?: {}",
-            print_bool(bitfield_fetch::<u32>(
-                self.feature_compat,
-                compat_readonly::RO_COMPAT_HUGE_FILE
-            ))
-        );
+            println!("volume name: {}", self.volume_name());
+            println!("mount opts: {}", self.mount_opts());
+            println!("last mounted: {}", self.last_mounted());
+            println!("first_error: {}", self.first_error_func());
+            println!(
+                "last check : {}",
+                timestamp_to_string(self.last_check as u64)
+            );
+            println!(
+                "Ext4 Dynamic rev?: {}",
+                print_bool(self.version_major == constants::EXT4_DYNAMIC_REV)
+            );
+            println!("64bit_support : {}", print_bool(self.uses_64bit()));
+            println!("Ext Attrs : {}", print_bool(self.uses_ext_attr()));
+            println!("Flex BG : {}", print_bool(self.uses_flex_bg()));
+            println!("MMP : {}", self.uses_mmp());
+            println!("Journal (internal) : {}", self.uses_journal());
+            println!(
+                "FlexBG Size: val: {} size 0x{:X?}",
+                self.log_groups_per_flex,
+                self.flex_bg_size()
+            );
+            println!(
+                "Uses EA Inode present?: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_incompat,
+                    breaks_compat::USES_EA_INODE
+                ))
+            );
+            println!(
+                "Inline Data present?: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_incompat,
+                    breaks_compat::USES_INLINE_DATA
+                ))
+            );
+            println!(
+                "ROCompat Extra Isize info present?: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_ro_compat,
+                    compat_readonly::RO_COMPAT_EXTRA_ISIZE
+                ))
+            );
+            println!(
+                "Uses dirdata: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_incompat,
+                    breaks_compat::USES_DIRDATA
+                ))
+            );
+            println!(
+                "FILETYPE flag set: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_incompat,
+                    breaks_compat::USES_FILETYPE
+                ))
+            );
+            println!(
+                "META_BG flag set: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_incompat,
+                    breaks_compat::USES_META_BG
+                ))
+            );
+            println!(
+                "Huge Inodes?: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_compat,
+                    compat_readonly::RO_COMPAT_HUGE_FILE
+                ))
+            );
+            println!("EXT4 BlockSize (decimal): {}", self.block_size_bytes());
+        });
     }
 }
 
@@ -359,4 +365,19 @@ pub mod cipher_bitflags {
     pub const ENCRYPTION_MODE_AES_256_XTS: u32 = 1; // 	256-bit AES in XTS mode .
     pub const ENCRYPTION_MODE_AES_256_GCM: u32 = 2; // 	256-bit AES in GCM mode .
     pub const ENCRYPTION_MODE_AES_256_CBC: u32 = 3; // 	256-bit AES in CBC mode .
+}
+
+impl HasHeaderMagic for Superblock {
+    fn magic_field_endianness(&self) -> Endianness {
+        return Endianness::Little;
+    }
+    fn magic_field_offset(&self) -> u64 {
+        0x38
+    }
+    fn magic_field_size(&self) -> u64 {
+        2
+    }
+    fn magic_field_upcast(&self) -> u128 {
+        0xef53
+    }
 }
