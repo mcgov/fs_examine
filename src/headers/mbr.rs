@@ -27,13 +27,21 @@ impl Mbr {
     }
     pub fn pretty_print(&self) {
         println!(
+            "{}",
+            "START: MBR -----------------------------------".purple()
+        );
+        println!(
             "MBR (skipping bootstrap...) disk_sig: {:x?} reserved:{}",
             self.opt_disk_sig, self.opt_reserved,
         );
         for partition in self.partitions.iter() {
             partition.pretty_print();
         }
-        println!("{}", self.boot_sector_sig);
+        println!("boot sector signature: {:x}", self.boot_sector_sig);
+        println!(
+            "{}",
+            "----------------------------------- END: MBR".purple()
+        );
     }
 }
 

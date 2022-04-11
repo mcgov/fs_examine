@@ -58,6 +58,9 @@ impl Summable32 for Gpt {
             residue: 0,
         }
     }
+    fn validate_checksum(&self, sumcheck: u32) -> bool {
+        self.crc32 == sumcheck
+    }
 }
 
 impl Gpt {
@@ -85,6 +88,10 @@ impl Gpt {
     // }
 
     pub fn print_partition_table(&self, file_arg: &str) {
+        println!(
+            "{}",
+            "START: GPT-TABLE -----------------------------------".bright_purple()
+        );
         let mut unused_counter = 0;
         for i in 0..self.gpe_table_entries as u64 {
             let entry = read_header_from_offset::<PartitionEntry>(
@@ -92,9 +99,20 @@ impl Gpt {
                 self.gpe_table_start * SMOL_BLOCKS + i * self.gpe_table_entry_size as u64,
             );
             if entry.is_in_use() {
-                println!("{}", entry.name());
+                println!(
+                    "{}",
+                    "START: GPT-ENTRY -----------------------------------".purple()
+                );
+                println!(
+                    "Name: {} Type:{}",
+                    entry.name().bright_blue(),
+                    entry.type_to_str().cyan()
+                );
                 println!("{:x?}", entry);
-                println!("{:?}", entry.type_to_str());
+                println!(
+                    "{}",
+                    "----------------------------------- END: GPT-ENTRY".purple()
+                );
             } else {
                 unused_counter += 1;
             }
@@ -104,12 +122,31 @@ impl Gpt {
             "{}",
             format!("skipped {} unused partition entries", unused_counter).blue()
         );
+        println!(
+            "{}",
+            "----------------------------------- END: GPT-TABLE".bright_purple()
+        );
     }
 
+    fn table_offset(&self) -> u64 {
+        self.gpe_table_start * SMOL_BLOCKS
+    }
     pub fn get_parition(&self, file_arg: &str, index: u32) -> PartitionEntry {
         read_header_from_offset::<PartitionEntry>(
             &file_arg,
-            self.gpe_table_start * SMOL_BLOCKS + (index * self.gpe_table_entry_size) as u64,
+            self.table_offset() + (index * self.gpe_table_entry_size) as u64,
         )
+    }
+
+    pub fn validate_table_checksums(&self, file_arg: &str) -> bool {
+        let table_crc = crate::headers::summer::crc32_bytes_from_disk(
+            file_arg,
+            self.crc_parameters(),
+            self.table_offset() as usize,
+            self.gpe_table_entries as usize * self.gpe_table_entry_size as usize,
+        );
+        let comparison = table_crc == self.gpe_table_crc32;
+        print_valid_checksum("GPT TABLE", comparison);
+        comparison
     }
 }

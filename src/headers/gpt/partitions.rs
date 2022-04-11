@@ -2,7 +2,7 @@ use crate::headers::gpt::uuids;
 use crate::headers::reader::{bitfield_fetch, uuid_deserialize};
 use compiled_uuid::uuid;
 use serde::de;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_big_array::BigArray;
 use std::fmt;
 use uuid::Uuid;
@@ -13,7 +13,7 @@ https://developer.apple.com/library/archive/technotes/tn2166/_index.html#//apple
 
 */
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PartitionEntry {
     #[serde(deserialize_with = "uuid_deserialize")]
     pub type_guid: Uuid,
@@ -121,6 +121,15 @@ impl<'de> Deserialize<'de> for Attributes {
         };
 
         Ok(a)
+    }
+}
+
+impl<'de> Serialize for Attributes {
+    fn serialize<S>(&self, serialize: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serialize.serialize_u64(self.container)
     }
 }
 

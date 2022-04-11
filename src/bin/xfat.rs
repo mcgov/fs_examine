@@ -9,8 +9,8 @@ use xfat::headers::ext4::*;
 use xfat::headers::gpt::Gpt;
 use xfat::headers::mbr::Mbr;
 use xfat::headers::reader::*;
-use xfat::headers::summer::crc32_structure_from_disk;
-
+use xfat::headers::summer;
+use xfat::headers::summer::*;
 /*
 ███████╗██╗   ██╗██████╗ ███████╗██████╗
 ██╔════╝██║   ██║██╔══██╗██╔════╝██╔══██╗
@@ -61,12 +61,10 @@ fn main() {
 	mbr.pretty_print();
 	//can add parition sizes to get expected image size.
 	let _gpt_part = mbr.get_partition(0);
-	let gpt = read_header_from_offset::<Gpt>(&file_arg, 1 * SMOL_BLOCKS);
-	let chksum = crc32_structure_from_disk::<Gpt>(&file_arg, &gpt, SMOL_BLOCKS as usize);
+	let gpt = read_header_from_offset::<Gpt>(&file_arg, SMOL_BLOCKS);
+	summer::validate_checksum::<Gpt>(&file_arg, &gpt, SMOL_BLOCKS as usize);
+	gpt.validate_table_checksums(&file_arg);
 	gpt.print_partition_table(&file_arg);
-
-	println!("LETS SEE {} ", print_bool(chksum == gpt.crc32));
-	return;
 	let gpe_ext4 = gpt.get_parition(&file_arg, 0);
 	// block offsets are from block_0 on the ext* partition.
 	let ext4_block_0 = gpe_ext4.first_lba * SMOL_BLOCKS;
