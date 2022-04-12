@@ -5,10 +5,12 @@ use std::mem::size_of;
 use xfat::headers::ext4::dirent::*;
 use xfat::headers::ext4::superblock::Superblock;
 use xfat::headers::ext4::*;
+use xfat::headers::fs::Disk;
 use xfat::headers::gpt::Gpt;
 use xfat::headers::mbr::Mbr;
 use xfat::headers::reader::*;
 use xfat::headers::summer;
+
 /*
 ███████╗██╗   ██╗██████╗ ███████╗██████╗
 ██╔════╝██║   ██║██╔══██╗██╔════╝██╔══██╗
@@ -23,11 +25,13 @@ use xfat::headers::summer;
 ██████╔╝███████╗╚██████╔╝╚██████╗██║  ██╗
 ╚═════╝ ╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝
 enjoy this fun header and don't bother reading this main it's
-just for me to mess around and is super messy*/
+just for me to mess around and is super messy
+*/
 
 const SMOL_BLOCKS: u64 = 512; //this needs a rename
 
 fn main() {
+	let d: Disk;
 	let file_arg = env::args().nth(1).unwrap();
 	let mbr = read_header_from_offset::<Mbr>(&file_arg, 0);
 	mbr.pretty_print();
