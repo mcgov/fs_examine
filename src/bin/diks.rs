@@ -1,6 +1,5 @@
 use ::xfat::headers::ext4;
 use colored::*;
-
 use std::env;
 use std::mem::size_of;
 use xfat::headers::ext4::dirent::*;
@@ -26,32 +25,6 @@ use xfat::headers::summer;
 enjoy this fun header and don't bother reading this main it's
 just for me to mess around and is super messy*/
 
-//use xfat::headers::xfs::ondiskhdr::XfsOndiskHeader;
-/*
-	let processed_header = read_header_from_file_unsafe::<BootSector, BootSectorRaw>(&file_arg);
-	println!("{:x}", processed_header.volume_length);
-	// disassemble the boot sector
-	disassemble(
-		&processed_header.boot_code,
-		16,
-		0x78,
-		processed_header.boot_code.len(),
-	);
-
-	let mbr = read_header_from_file::<Mbr>(&file_arg, 0);
-	println!("{:?}", mbr);
-	let main_exfat = read_header_from_file::<BootSector>(
-		&file_arg,
-		mbr.partitions[0].lba_of_partition_start as u64 * 512,
-	);
-	main_exfat.print_header();
-	main_exfat.validate_header();
-	let extended_boot_sector = read_header_from_file::<ExtendedBootSector>(&file_arg, 512);
-	println!(
-		"extended boot sector is valid: {:x?}",
-		extended_boot_sector.section_is_valid(main_exfat.bytes_per_sector_shift)
-	);
-*/
 const SMOL_BLOCKS: u64 = 512; //this needs a rename
 
 fn main() {
