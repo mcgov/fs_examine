@@ -381,3 +381,5 @@ impl HasHeaderMagic for Superblock {
         0xef53
     }
 }
+
+pub const BLOCK_0_PADDING: u64 = 1024;

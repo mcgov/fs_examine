@@ -46,6 +46,9 @@ impl Summable for Gpt {
         }
     }
     // GPT_CRC32 uses linux ethernet paramters with -1 init and ~ at the end
+    fn data_to_include(&self) -> Vec<u8> {
+        vec![]
+    }
 }
 impl Summable32 for Gpt {
     fn crc_parameters(&self) -> &'static Algorithm<u32> {

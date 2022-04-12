@@ -61,14 +61,14 @@ fn main() {
 	//can add parition sizes to get expected image size.
 	let _gpt_part = mbr.get_partition(0);
 	let gpt = read_header_from_offset::<Gpt>(&file_arg, SMOL_BLOCKS);
-	summer::struct_validate_checksum::<Gpt>(&file_arg, &gpt, SMOL_BLOCKS);
+	summer::struct_validate_checksum32::<Gpt>(&file_arg, &gpt, SMOL_BLOCKS);
 	gpt.validate_table_checksums(&file_arg);
 	gpt.print_partition_table(&file_arg);
-	let gpe_ext4 = gpt.get_parition(&file_arg, 1);
+	let gpe_ext4 = gpt.get_parition(&file_arg, 0);
 	// block offsets are from block_0 on the ext* partition.
 	let ext4_block_0 = gpe_ext4.first_lba * SMOL_BLOCKS;
 	// ext4 first block has 1024 bytes of padding before superblock.
-	let super_block_offset = 1024 + ext4_block_0;
+	let super_block_offset = superblock::BLOCK_0_PADDING + ext4_block_0;
 	let superblock = read_header_from_offset::<Superblock>(&file_arg, super_block_offset);
 	if !superblock.check_magic_field(&file_arg, super_block_offset) {
 		println!("Magic field was invalid for this superblock");
@@ -83,12 +83,18 @@ fn main() {
 		superblock.get_group_descriptor_table_offset(gpe_ext4.first_lba);
 	if !superblock.uses_64bit() {
 		for i in 0..superblock.number_of_groups() {
-			let group_descriptor =
-				read_header_from_offset::<ext4::block_group::BlockGroupDescriptor32>(
-					&file_arg,
-					block_group_desc_table_offset
-						+ size_of::<ext4::block_group::BlockGroupDescriptor32>() as u64 * i,
-				);
+			let item_group_table_offset = block_group_desc_table_offset + 64 as u64 * i;
+			let mut group_descriptor = read_header_from_offset::<
+				ext4::block_group::BlockGroupDescriptor32,
+			>(&file_arg, item_group_table_offset);
+			group_descriptor.uuid = superblock.uuid.as_u128();
+			group_descriptor.bg_id = i as u16;
+			summer::struct_validate_checksum16::<ext4::block_group::BlockGroupDescriptor32>(
+				&file_arg,
+				&group_descriptor,
+				item_group_table_offset,
+			);
+			return;
 			group_descriptor.pretty_print(i);
 			if group_descriptor.is_uninitialized() {
 				continue;
