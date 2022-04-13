@@ -1,3 +1,4 @@
+use crate::headers::fs;
 use crate::headers::reader::*;
 use crate::prettify_output;
 use colored::*;
@@ -270,6 +271,14 @@ impl Superblock {
             );
             println!("EXT4 BlockSize (decimal): {}", self.block_size_bytes());
         });
+    }
+}
+impl fs::DiskPart for Superblock {
+    fn bitness(&self) -> u16 {
+        if self.uses_64bit() {
+            return 64;
+        }
+        32
     }
 }
 

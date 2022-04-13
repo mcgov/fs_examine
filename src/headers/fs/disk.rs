@@ -1,6 +1,8 @@
+use super::DiskPart;
 use crate::headers::reader::HasHeaderMagic;
 use crate::headers::*;
 use colored::*;
+
 /* I don't care that nobody uses disks anymore I'm calling it this to justify the name of the exe */
 #[derive(Debug)]
 pub struct Disk {
@@ -50,12 +52,25 @@ impl Partition {
         if sb.check_magic_field(
             &file_arg,
             self.p_offset + constants::EXT4_SUPERBLOCK_0_OFFSET,
-        ) && sb.validate_checksum()
-        {
+        ) {
             return PartitionType::Ext4;
         }
         return PartitionType::LinuxFsTBD;
         //let xfs = read::read_header_from_offset::<xfs::ondiskhdr::XfsOndiskHeader> when implemented
+    }
+    pub fn get_partition_bitness(&self, file_arg: &str) -> u16 {
+        match self.p_type {
+            PartitionType::Ext4 => {
+                let sb = reader::read_header_from_offset::<ext4::superblock::Superblock>(
+                    &file_arg,
+                    self.p_offset + constants::EXT4_SUPERBLOCK_0_OFFSET,
+                );
+                return sb.bitness();
+            }
+            _ => {
+                panic!("not implemented")
+            }
+        }
     }
 }
 

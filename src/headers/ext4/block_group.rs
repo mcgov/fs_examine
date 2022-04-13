@@ -26,55 +26,6 @@ pub struct BlockGroupDescriptor32 {
   pub inode_bitmap_csum_lo: u16, // 	Lower 16-bits of the inode bitmap checksum.
   pub itable_unused_lo: u16, // 	Lower 16-bits of unused inode count. If set, we needn't scan past the (sb.s_inodes_per_group - gdt.bg_itable_unused)th entry in the inode table for this group.
   pub checksum: u16, // 	Group descriptor checksum; crc16(sb_uuid+group+desc) if the RO_COMPAT_GDT_CSUM feature is set, or crc32c(sb_uuid+group_desc) & 0xFFFF if the RO_COMPAT_METADATA_CSUM feature is set.
-  //These fields only exist if the 64bit feature is enabled and s_desc_size > 32.
-  #[serde(skip)]
-  pub uuid: u128,
-  #[serde(skip)]
-  pub bg_id: u16,
-}
-
-// this code is wrong, needs to account for versions and flags
-//https://code.woboq.org/linux/linux/fs/ext4/super.c.html
-impl summer::Summable for BlockGroupDescriptor32 {
-  fn range_to_include(&self) -> Range<usize> {
-    Range {
-      start: 0,
-      end: 0x20,
-    }
-  }
-  fn ranges_to_zero(&self) -> Vec<Range<usize>> {
-    vec![Range {
-      start: 0x1e,
-      end: 0x20,
-    }]
-  }
-  fn data_to_include(&self) -> Vec<u8> {
-    let mut uuid_and_gid: Vec<u8> = vec![];
-    for byte in <u128>::to_le_bytes(self.uuid) {
-      uuid_and_gid.push(byte);
-    }
-    for byte in <u32>::to_le_bytes(self.bg_id as u32) {
-      uuid_and_gid.push(byte);
-    }
-    return uuid_and_gid;
-  }
-}
-impl summer::Summable16 for BlockGroupDescriptor32 {
-  fn validate_checksum(&self, sumcheck: u16) -> bool {
-    println!("{:x} {:x}", self.checksum, sumcheck);
-    self.checksum == sumcheck
-  }
-  fn crc_parameters(&self) -> &'static Algorithm<u16> {
-    &Algorithm::<u16> {
-      poly: 0x8005,
-      init: 0,
-      refin: true,
-      refout: true,
-      xorout: 0, //FFFFFFFF,
-      check: 0,
-      residue: 0,
-    }
-  }
 }
 
 impl BlockGroupDescriptor32 {
@@ -115,18 +66,17 @@ impl BlockGroupDescriptor32 {
 }
 
 pub struct BlockGroupDescriptor64 {
-  pub low_fields: BlockGroupDescriptor32,
-  pub block_bitmap_hi: u32, // 	Upper 32-bits of location of block bitmap.
-  pub inode_bitmap_hi: u32, // 	Upper 32-bits of location of inodes bitmap.
-  pub inode_table_hi: u32,  // 	Upper 32-bits of location of inodes table.
+  pub block_bitmap_hi: u32,      // 	Upper 32-bits of location of block bitmap.
+  pub inode_bitmap_hi: u32,      // 	Upper 32-bits of location of inodes bitmap.
+  pub inode_table_hi: u32,       // 	Upper 32-bits of location of inodes table.
   pub free_blocks_count_hi: u16, // 	Upper 16-bits of free block count.
   pub free_inodes_count_hi: u16, // 	Upper 16-bits of free inode count.
-  pub used_dirs_count_hi: u16, // 	Upper 16-bits of directory count.
-  pub itable_unused_hi: u16, // 	Upper 16-bits of unused inode count.
-  pub exclude_bitmap_hi: u32, // 	Upper 32-bits of location of snapshot exclusion bitmap.
+  pub used_dirs_count_hi: u16,   // 	Upper 16-bits of directory count.
+  pub itable_unused_hi: u16,     // 	Upper 16-bits of unused inode count.
+  pub exclude_bitmap_hi: u32,    // 	Upper 32-bits of location of snapshot exclusion bitmap.
   pub block_bitmap_csum_hi: u16, // 	Upper 16-bits of the block bitmap checksum.
   pub inode_bitmap_csum_hi: u16, // 	Upper 16-bits of the inode bitmap checksum.
-  pub reserved: u32,        // 	Padding to 64 bytes.
+  pub reserved: u32,             // 	Padding to 64 bytes.
 }
 
 pub mod bg_flags {

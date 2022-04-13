@@ -71,13 +71,6 @@ fn main() {
 			let mut group_descriptor = read_header_from_offset::<
 				ext4::block_group::BlockGroupDescriptor32,
 			>(&file_arg, item_group_table_offset);
-			group_descriptor.uuid = superblock.uuid.as_u128();
-			group_descriptor.bg_id = i as u16;
-			summer::struct_validate_checksum16::<ext4::block_group::BlockGroupDescriptor32>(
-				&file_arg,
-				&group_descriptor,
-				item_group_table_offset,
-			);
 			return;
 			group_descriptor.pretty_print(i);
 			if group_descriptor.is_uninitialized() {
