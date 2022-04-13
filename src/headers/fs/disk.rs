@@ -1,3 +1,4 @@
+use crate::headers::reader::HasHeaderMagic;
 use crate::headers::*;
 use colored::*;
 /* I don't care that nobody uses disks anymore I'm calling it this to justify the name of the exe */
@@ -38,6 +39,26 @@ pub struct Partition {
     p_name: String,
 }
 
+impl Partition {
+    pub fn check_linux_fs_type(&self, file_arg: &str) -> PartitionType {
+        // really wish I could loop on types, this might be macro-able though once I need to
+
+        let sb = reader::read_header_from_offset::<ext4::superblock::Superblock>(
+            &file_arg,
+            self.p_offset + constants::EXT4_SUPERBLOCK_0_OFFSET,
+        );
+        if sb.check_magic_field(
+            &file_arg,
+            self.p_offset + constants::EXT4_SUPERBLOCK_0_OFFSET,
+        ) && sb.validate_checksum()
+        {
+            return PartitionType::Ext4;
+        }
+        return PartitionType::LinuxFsTBD;
+        //let xfs = read::read_header_from_offset::<xfs::ondiskhdr::XfsOndiskHeader> when implemented
+    }
+}
+
 impl Disk {
     pub fn set_partition_table_type(&mut self) {
         let _gpt_part = self.mbr.get_partition(0);
@@ -70,12 +91,15 @@ impl Disk {
             PartitionTableType::Gpt => {
                 let gpt = self.get_gpt();
                 for partition in gpt.create_partition_table(&self.file_arg) {
-                    let part = Partition {
+                    let mut part = Partition {
                         p_type: partition.get_partition_type(),
                         p_offset: partition.first_lba * constants::SMOL_BLOCKS,
                         p_size: (partition.last_lba - partition.first_lba) * constants::SMOL_BLOCKS,
                         p_name: partition.name(),
                     };
+                    if matches!(part.p_type, PartitionType::LinuxFsTBD) {
+                        part.p_type = part.check_linux_fs_type(&self.file_arg)
+                    }
                     self.partitions.push(part);
                 }
             }
