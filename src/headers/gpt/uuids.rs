@@ -1,8 +1,29 @@
+use crate::headers::fs::disk::PartitionType;
 use compiled_uuid::uuid;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use uuid::Uuid;
 
+lazy_static! {
+    pub static ref GUID_TYPE_ENUM_MAP: HashMap<Uuid, PartitionType> = HashMap::from([
+        (
+            uuid!("00000000-0000-0000-0000-000000000000"),
+            PartitionType::Unused
+        ),
+        (
+            uuid!("C12A7328-F81F-11D2-BA4B-00A0C93EC93B"),
+            PartitionType::EfiSystem,
+        ),
+        (
+            uuid!("21686148-6449-6E6F-744E-656564454649"),
+            PartitionType::BiosBoot,
+        ),
+        (
+            uuid!("0FC63DAF-8483-4772-8E79-3D69D8477DE4"),
+            PartitionType::LinuxFsTBD,
+        )
+    ]);
+}
 lazy_static! {
     pub static ref GUID_TYPE_MAP: HashMap<Uuid, &'static str> = HashMap::from([
         (
@@ -83,11 +104,11 @@ lazy_static! {
         ),
         (
             uuid!("44479540-F297-41B2-9AF7-D131D5F0458A"),
-            "Root partition x864344",
+            "Root partition x86",
         ),
         (
             uuid!("4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709"),
-            "Root partition x86-644344",
+            "Root partition x86-64",
         ),
         (
             uuid!("69DAD710-2CE4-4E3C-B16C-21A1D49ABED3"),
@@ -95,7 +116,7 @@ lazy_static! {
         ),
         (
             uuid!("B921B045-1DF0-41C3-AF44-4C6F280D3FAE"),
-            "Root partition 64-bit ARM/AArch64",
+            "Root partition 64-bit AArch64",
         ),
         (
             uuid!("BC13C2FF-59E6-4262-A352-B275FD6F7172"),

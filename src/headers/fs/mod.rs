@@ -1,1 +1,1 @@
-pub mod partition_table;
+pub mod disk;

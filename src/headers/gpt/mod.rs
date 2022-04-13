@@ -91,6 +91,17 @@ impl Gpt {
     //     csum
     // }
 
+    pub fn create_partition_table(&self, file_arg: &str) -> Vec<PartitionEntry> {
+        let mut partition_table: Vec<PartitionEntry> = vec![];
+        for i in 0..self.gpe_table_entries as u64 {
+            let entry = read_header_from_offset::<PartitionEntry>(
+                &file_arg,
+                self.gpe_table_start * SMOL_BLOCKS + i * self.gpe_table_entry_size as u64,
+            );
+            partition_table.push(entry);
+        }
+        partition_table
+    }
     pub fn print_partition_table(&self, file_arg: &str) {
         let mut unused_counter = 0;
         prettify_output!(PartitionEntry, purple, bright_purple, {

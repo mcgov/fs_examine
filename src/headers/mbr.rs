@@ -81,6 +81,19 @@ impl MbrPartitionEntry {
             format!("[{}] is_active: {}\nchs start: {:x?}\nchs last part sector: {:x?}\nlba of part start: {:x?}\nsectors in partition: {:x?}", partition_label, print_bool(active), self.partition_start, self.last_partition_sector,self.lba_of_partition_start, self.sectors_in_partition)
         );
     }
+    pub fn get_partition_type(&self) -> PartitionId {
+        match PartitionId::from_u8(self.partition_type) {
+            None => {
+                return PartitionId::Unknown;
+            }
+            Some(x) => {
+                return x;
+            }
+            _ => {
+                panic!("Unhelpful partition id error!");
+            }
+        }
+    }
 }
 
 // this one sucks it doesn't have fun colors
@@ -101,7 +114,7 @@ impl fmt::Debug for MbrPartitionEntry {
 }
 
 #[derive(Debug, FromPrimitive)]
-enum PartitionId {
+pub enum PartitionId {
     Empty = 0,
     Fat12 = 1,
     Xenix = 2,
@@ -133,4 +146,5 @@ enum PartitionId {
     Gpt = 0xEE, // if this is the type we just ignore all the other shit in the MBR.
     WindowsGptSafeMbr = 0xEF,
     LinuxExt3Pache = 0xFD,
+    Unknown,
 }

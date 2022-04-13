@@ -1,3 +1,4 @@
+use crate::headers::fs::disk;
 use crate::headers::gpt::uuids;
 use crate::headers::reader::{bitfield_fetch, uuid_deserialize};
 use compiled_uuid::uuid;
@@ -161,6 +162,12 @@ impl PartitionEntry {
     }
     pub fn is_in_use(&self) -> bool {
         self.type_guid != uuid!("00000000-0000-0000-0000-000000000000")
+    }
+    pub fn get_partition_type(&self) -> disk::PartitionType {
+        match uuids::GUID_TYPE_ENUM_MAP.get(&self.type_guid) {
+            None => disk::PartitionType::Unknown,
+            Some(v) => v.clone(),
+        }
     }
 }
 

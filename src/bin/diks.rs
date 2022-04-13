@@ -5,9 +5,9 @@ use std::mem::size_of;
 use xfat::headers::ext4::dirent::*;
 use xfat::headers::ext4::superblock::Superblock;
 use xfat::headers::ext4::*;
-use xfat::headers::fs::Disk;
+use xfat::headers::fs::disk;
 use xfat::headers::gpt::Gpt;
-use xfat::headers::mbr::Mbr;
+use xfat::headers::mbr;
 use xfat::headers::reader::*;
 use xfat::headers::summer;
 
@@ -31,16 +31,23 @@ just for me to mess around and is super messy
 const SMOL_BLOCKS: u64 = 512; //this needs a rename
 
 fn main() {
-	let d: Disk;
 	let file_arg = env::args().nth(1).unwrap();
-	let mbr = read_header_from_offset::<Mbr>(&file_arg, 0);
-	mbr.pretty_print();
-	//can add parition sizes to get expected image size.
-	let _gpt_part = mbr.get_partition(0);
-	let gpt = read_header_from_offset::<Gpt>(&file_arg, SMOL_BLOCKS);
-	summer::struct_validate_checksum32::<Gpt>(&file_arg, &gpt, SMOL_BLOCKS);
-	gpt.validate_table_checksums(&file_arg);
-	gpt.print_partition_table(&file_arg);
+
+	// start building our disk
+	let mut d: disk::Disk = disk::Disk {
+		mbr: read_header_from_offset::<mbr::Mbr>(&file_arg, 0),
+		pt_type: disk::PartitionTableType::Mbr,
+		partitions: vec![],
+		file_arg: file_arg.clone(),
+	};
+	d.mbr.pretty_print();
+
+	// get that first partition to check for GPT
+	d.set_partition_table_type(); // will panic on unimplemented partition type
+	let gpt = d.get_gpt();
+	d.register_partitions();
+	d.print_partitions();
+	return;
 	let gpe_ext4 = gpt.get_parition(&file_arg, 0);
 	// block offsets are from block_0 on the ext* partition.
 	let ext4_block_0 = gpe_ext4.first_lba * SMOL_BLOCKS;
