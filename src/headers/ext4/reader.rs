@@ -7,6 +7,7 @@ use super::superblock::*;
 use super::*;
 use crate::headers::reader::read_header_from_offset;
 use colored::*;
+use crc::*;
 
 pub struct Part {
     pub file: String,
@@ -16,14 +17,20 @@ pub struct Part {
 }
 
 pub struct Bg {
+    pub start: u64,
     pub b32: Option<BlockGroupDescriptor32>,
     pub b64: Option<BlockGroupDescriptor64>,
     pub ino: Vec<Ino>,
 }
 
 impl Bg {
-    pub fn init(smol: Option<BlockGroupDescriptor32>, big: Option<BlockGroupDescriptor64>) -> Bg {
+    pub fn init(
+        start: u64,
+        smol: Option<BlockGroupDescriptor32>,
+        big: Option<BlockGroupDescriptor64>,
+    ) -> Bg {
         Bg {
+            start,
             b32: smol,
             b64: big,
             ino: vec![],
@@ -74,8 +81,7 @@ impl Part {
             bg: vec![],
         }
     }
-    pub fn read_entire_fs(&mut self) {
-        self.s.debug_print_some_stuf();
+    pub fn populate_block_groups(&mut self) {
         let bgdt_offset = self.s.get_group_descriptor_table_offset(self.start);
         for i in 0..self.s.number_of_groups() {
             if self.s.uses_64bit() && self.s.desc_size > 32 {
@@ -93,19 +99,37 @@ impl Part {
                     &self.file,
                     bg_offset + std::mem::size_of::<BlockGroupDescriptor32>() as u64,
                 );
-                let bgboi = Bg::init(Some(bg32), Some(bg64));
+                let bgboi = Bg::init(bg_offset, Some(bg32), Some(bg64));
                 //bgboi.print();
                 self.bg.push(bgboi);
             } else {
                 let bg_offset =
                     bgdt_offset + std::mem::size_of::<BlockGroupDescriptor32>() as u64 * i;
                 let bg = read_header_from_offset::<BlockGroupDescriptor32>(&self.file, bg_offset);
-                let bgboi = Bg::init(Some(bg), None);
+                let bgboi = Bg::init(bg_offset, Some(bg), None);
                 //bgboi.print();
                 self.bg.push(bgboi);
             }
         }
-        // TODO: validate each one, these have checksums
+        // TODO:
+    }
+    pub fn read_fs_block(&mut self) {
+        self.s.debug_print_some_stuf();
+        if self.s.metadata_csum() {
+            
+                &Algorithm::<u16> {
+                    poly: 0x8005,
+                    init: 0,
+                    refin: true,
+                    refout: true,
+                    xorout: 0,
+                    check: 0,
+                    residue: 0,
+                }
+            }
+        }
+
+        //validate each one, these have checksums
         println!(
             "{} sanity check: {:X}",
             format!("found {:X} block group descriptors.", self.bg.len()).blue(),

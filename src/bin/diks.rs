@@ -54,7 +54,7 @@ fn main() {
 			if !ext4_reader.s.uses_64bit() {
 				continue;
 			}
-			ext4_reader.read_entire_fs();
+			ext4_reader.read_fs_block();
 		}
 	}
 

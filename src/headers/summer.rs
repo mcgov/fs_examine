@@ -90,3 +90,17 @@ pub fn crc32_bytes_from_disk(
     digest.update(&struct_bytes);
     digest.finalize()
 }
+
+pub fn crc32_bytes(file_arg: &str, algorithm: &'static Algorithm<u32>, bytes: Vec<u8>) -> u32 {
+    let summer = Crc::<u32>::new(algorithm);
+    let mut digest = summer.digest();
+    digest.update(&bytes);
+    digest.finalize()
+}
+
+pub fn crc16_bytes(file_arg: &str, algorithm: &'static Algorithm<u16>, bytes: Vec<u8>) -> u16 {
+    let summer = Crc::<u16>::new(algorithm);
+    let mut digest = summer.digest();
+    digest.update(&bytes);
+    digest.finalize()
+}

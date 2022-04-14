@@ -174,6 +174,12 @@ impl Superblock {
     pub fn uses_journal(&self) -> bool {
         bitfield_fetch(self.feature_compat, compat_bitflags::COMPAT_HAS_JOURNAL)
     }
+    pub fn metadata_csum(&self) -> bool {
+        bitfield_fetch(
+            self.feature_compat,
+            compat_readonly::RO_COMPAT_METADATA_CSUM,
+        )
+    }
     pub fn descriptor_size(&self) -> u16 {
         self.desc_size
     }
