@@ -35,7 +35,7 @@ pub enum PartitionType {
 }
 #[derive(Debug, Clone)]
 pub struct Partition {
-    p_type: PartitionType,
+    pub p_type: PartitionType,
     p_offset: u64,
     p_size: u64,
     p_name: String,
@@ -97,7 +97,7 @@ impl Disk {
             constants::SMOL_BLOCKS,
         );
         gpt.validate_table_checksums(&self.file_arg);
-        gpt.print_partition_table(&self.file_arg);
+        //gpt.print_partition_table(&self.file_arg);
         gpt
     }
 
@@ -124,7 +124,7 @@ impl Disk {
         }
     }
 
-    pub fn print_partitions(&self) {
+    pub fn print_partitions_shitty(&self) {
         for part in self.partitions.clone().into_iter() {
             if !matches!(part.p_type, PartitionType::Unused) {
                 println!(
@@ -140,5 +140,33 @@ impl Disk {
                 );
             }
         }
+    }
+
+    pub fn print_partitions_pretty(&self) {
+        match &self.pt_type {
+            PartitionTableType::Gpt => {
+                self.get_gpt().print_partition_table(&self.file_arg);
+            }
+            PartitionTableType::Mbr => {
+                self.mbr.pretty_print();
+            }
+        }
+    }
+
+    pub fn get_partition(&self, ptid: usize) -> Partition {
+        return self.partitions.get(ptid).unwrap().clone();
+    }
+
+    pub fn make_ext4_reader(&mut self, p: Partition) -> ext4::reader::Part {
+        assert!(matches!(p.p_type, PartitionType::Ext4));
+        let sb = reader::read_header_from_offset::<ext4::superblock::Superblock>(
+            &self.file_arg,
+            p.p_offset + constants::EXT4_SUPERBLOCK_0_OFFSET,
+        );
+        ext4::reader::Part::init(self.file_arg.clone(), sb, p.p_offset)
+    }
+    pub fn make_ext4_reader_index(&mut self, ptid: usize) -> ext4::reader::Part {
+        let part = self.get_partition(ptid);
+        self.make_ext4_reader(part)
     }
 }

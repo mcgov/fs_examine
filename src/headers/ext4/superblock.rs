@@ -139,12 +139,8 @@ impl Superblock {
         1024 << self.log_block_size
     }
 
-    pub fn get_group_descriptor_table_offset(&self, first_lba: u64) -> u64 {
-        get_offset_from_block_number(
-            first_lba * crate::headers::constants::SMOL_BLOCKS,
-            1 + self.superblock as u64,
-            self.block_size_bytes(),
-        )
+    pub fn get_group_descriptor_table_offset(&self, start: u64) -> u64 {
+        get_offset_from_block_number(start, 1 + self.superblock as u64, self.block_size_bytes())
     }
 
     pub fn volume_name(&self) -> String {
@@ -177,6 +173,9 @@ impl Superblock {
     }
     pub fn uses_journal(&self) -> bool {
         bitfield_fetch(self.feature_compat, compat_bitflags::COMPAT_HAS_JOURNAL)
+    }
+    pub fn descriptor_size(&self) -> u16 {
+        self.desc_size
     }
     pub fn flex_bg_size(&self) -> u64 {
         1 << self.log_groups_per_flex
