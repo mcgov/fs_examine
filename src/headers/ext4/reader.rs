@@ -177,7 +177,7 @@ impl Part {
                 // println!("{:x?}", bytes);
                 // println!("bgid:{}", bgid);
                 // println!("desc_size {}", self.s.superblock);
-                for byte in <u32>::to_le_bytes(bgid as u32) {
+                for byte in <u32>::to_le_bytes(bgid as u32 + 1 + 1) {
                     bytes.push(byte);
                 }
                 //println!("{:x?}", bytes);
@@ -202,7 +202,7 @@ impl Part {
                 //println!("{:x?}", bg_item.b32.as_ref().unwrap());
                 let crcsum = summer::crc16(0xffff, bytes.clone());
                 let bgcrc = bg_item.b32.as_ref().unwrap().checksum;
-                if bgcrc != (crcsum & 0xffff) {
+                if u16::to_le(bgcrc) != (crcsum & 0xffff) {
                     println!(
                         "checksum did not match: {:04x} {:04x} {:04x} {:04x}",
                         crcsum, !crcsum, !bgcrc, bgcrc
