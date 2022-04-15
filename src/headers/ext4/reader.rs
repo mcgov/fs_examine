@@ -33,7 +33,7 @@ impl Bg {
         big: Option<BlockGroupDescriptor64>,
     ) -> Bg {
         Bg {
-            start,
+            start: start,
             b32: smol,
             b64: big,
             ino: vec![],
@@ -169,54 +169,46 @@ impl Part {
 
                 let mut bytesdisk =
                     reader::read_bytes_from_file(&self.file, self.start + 1024 + 0x68, 16);
-
                 bytes.append(&mut bytesdisk);
-                println!(
-                    "{:x?}",
-                    reader::read_bytes_from_file(&self.file, self.start + 1024 + 0x68, 16)
-                );
-                println!("{:x?}", bytes);
-                println!("bgid:{}", bgid);
-                println!("desc_size {}", self.s.superblock);
-                for byte in <u32>::to_le_bytes(bgid as u32 + 1) {
+                // println!(
+                //     "{:x?}",
+                //     reader::read_bytes_from_file(&self.file, self.start + 1024 + 0x68, 16)
+                // );
+                // println!("{:x?}", bytes);
+                // println!("bgid:{}", bgid);
+                // println!("desc_size {}", self.s.superblock);
+                for byte in <u32>::to_le_bytes(bgid as u32) {
                     bytes.push(byte);
                 }
-                println!("{:x?}", bytes);
+                //println!("{:x?}", bytes);
 
                 let bg_item = self.bg.get(bgid).unwrap();
                 let bg_start = bg_item.start;
+                let bitecopy = reader::read_bytes_from_file(&self.file, bg_start, 0x1e);
+                //println!("dk:{:02x?}", bitecopy);
+                bytes.append(&mut reader::read_bytes_from_file(
+                    &self.file, bg_start, 0x1e,
+                ));
                 unsafe {
                     let bites = std::mem::transmute::<BlockGroupDescriptor32, [u8; 0x20]>(
                         bg_item.b32.as_ref().unwrap().clone(),
                     );
-                    println!("as:{:02x?}", bites[..bites.len() - 2].to_vec());
+                    //println!("as:{:02x?}", bites[..bites.len() - 2].to_vec());
+                    assert_eq!(bitecopy, bites[..bites.len() - 2].to_vec())
                     //bytes.append(&mut bites[..bites.len() - 2].to_vec())
                 }
-                println!(
-                    "dk:{:02x?}",
-                    reader::read_bytes_from_file(&self.file, bg_start, 0x1e),
-                );
-                bytes.append(&mut reader::read_bytes_from_file(
-                    &self.file, bg_start, 0x1e,
-                ));
 
-                println!("{:02x?}", bytes);
-                println!("{:x?}", bg_item.b32.as_ref().unwrap());
-                let a = summer::crc16_bytes(&self.file, &Algo161, bytes.clone());
-                println!("{:x?} {:x?}", a, !a,);
-                let b = summer::crc16_bytes(&self.file, &Algo162, bytes.clone());
-                println!("{:x?} {:x?}", b, !b);
-                let c = summer::crc16_bytes(&self.file, &Algo163, bytes.clone());
-                println!("{:x?} {:x?}", c, !c,);
-                let crcsum = summer::crc16_bytes(&self.file, &Algo16, bytes.clone());
+                //println!("{:02x?}", bytes);
+                //println!("{:x?}", bg_item.b32.as_ref().unwrap());
+                let crcsum = summer::crc16(0xffff, bytes.clone());
                 let bgcrc = bg_item.b32.as_ref().unwrap().checksum;
                 if bgcrc != (crcsum & 0xffff) {
-                    panic!(
-                        "checksum did not match: {:x} {:x} {:x} {:x}",
+                    println!(
+                        "checksum did not match: {:04x} {:04x} {:04x} {:04x}",
                         crcsum, !crcsum, !bgcrc, bgcrc
-                    );
+                    )
                 } else {
-                    println!("checksum matches for bg {}", bgid);
+                    println!("checksum matches for bg {:x}", bgid);
                 }
             }
         }
