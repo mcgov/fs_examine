@@ -178,18 +178,29 @@ impl Part {
                 println!("{:x?}", bytes);
                 println!("bgid:{}", bgid);
                 println!("desc_size {}", self.s.superblock);
-                for byte in <u32>::to_le_bytes(bgid as u32 + 1 + self.s.superblock as u32) {
+                for byte in <u32>::to_le_bytes(bgid as u32 + 1) {
                     bytes.push(byte);
                 }
                 println!("{:x?}", bytes);
 
                 let bg_item = self.bg.get(bgid).unwrap();
                 let bg_start = bg_item.start;
+                unsafe {
+                    let bites = std::mem::transmute::<BlockGroupDescriptor32, [u8; 0x20]>(
+                        bg_item.b32.as_ref().unwrap().clone(),
+                    );
+                    println!("as:{:02x?}", bites[..bites.len() - 2].to_vec());
+                    //bytes.append(&mut bites[..bites.len() - 2].to_vec())
+                }
+                println!(
+                    "dk:{:02x?}",
+                    reader::read_bytes_from_file(&self.file, bg_start, 0x1e),
+                );
                 bytes.append(&mut reader::read_bytes_from_file(
                     &self.file, bg_start, 0x1e,
                 ));
 
-                println!("{:x?}", bytes);
+                println!("{:02x?}", bytes);
                 println!("{:x?}", bg_item.b32.as_ref().unwrap());
                 let a = summer::crc16_bytes(&self.file, &Algo161, bytes.clone());
                 println!("{:x?} {:x?}", a, !a,);

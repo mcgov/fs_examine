@@ -12,7 +12,8 @@ use uuid::Uuid;
 
 // This shit is variable length depending on the bitness
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
+#[repr(packed)]
 pub struct BlockGroupDescriptor32 {
   pub block_bitmap_lo: u32,      // 	Lower 32-bits of location of block bitmap.
   pub inode_bitmap_lo: u32,      // 	Lower 32-bits of location of inode bitmap.
