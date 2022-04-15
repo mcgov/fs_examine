@@ -51,10 +51,11 @@ fn main() {
 		if matches!(part.p_type, disk::PartitionType::Ext4) {
 			let ext4part = part.clone();
 			let mut ext4_reader = d.make_ext4_reader(ext4part);
-			if !ext4_reader.s.uses_64bit() {
-				continue;
-			}
-			ext4_reader.read_fs_block();
+			//if !ext4_reader.s.uses_64bit() {
+			//continue;
+			//}
+			ext4_reader.populate_block_groups();
+			ext4_reader.validate_block_groups();
 		}
 	}
 

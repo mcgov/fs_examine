@@ -57,8 +57,7 @@ pub struct Superblock {
     pub feature_compat: u32, //Compatible feature set flags. Kernel can still read/write this fs even if it doesn't understand a flag; e2fsck will not attempt to fix a filesystem with any unknown COMPAT flags. Any of:
     pub feature_incompat: u32,
     pub feature_ro_compat: u32, //	Readonly-compatible feature set. If the kernel doesn't understand one of these bits, it can still mount read-only, but e2fsck will refuse to modify the filesystem. Any of:
-    #[serde(deserialize_with = "uuid_deserialize")]
-    pub uuid: Uuid, //	128-bit UUID for volume
+    pub uuid: [u8; 16],         //	128-bit UUID for volume
     pub volume_name: [u8; 16],  // Volume label
     #[serde(with = "BigArray")]
     pub last_mounted: [u8; 64], //Directory where filesystem was last mounted.
@@ -66,8 +65,7 @@ pub struct Superblock {
     pub prealloc_blocks: u8, //	# of blocks to try to preallocate for ... files? (Not used in e2fsprogs/Linux)
     pub prealloc_dir_blocks: u8, //	# of blocks to preallocate for directories. (Not used in e2fsprogs/Linux)
     pub reserved_gdt_blocks: u16, //	Number of reserved GDT entries for future filesystem expansion.
-    #[serde(deserialize_with = "uuid_deserialize")]
-    pub journal_uuid: Uuid, //	UUID of journal superblock
+    pub journal_uuid: [u8; 16],  //	UUID of journal superblock
     pub journal_inum: u32,       //	inode number of journal file.
     pub journal_dev: u32, //	Device number of journal file, if the external journal feature flag is set.
     pub last_orphan: u32, //	Start of list of orphaned inodes to delete.
@@ -185,6 +183,9 @@ impl Superblock {
     }
     pub fn flex_bg_size(&self) -> u64 {
         1 << self.log_groups_per_flex
+    }
+    pub fn has_feature_gdt_csum(&self) -> bool {
+        bitfield_fetch(self.feature_compat, compat_readonly::RO_COMPAT_GDT_CSUM)
     }
 
     pub fn debug_print_some_stuf(&self) {

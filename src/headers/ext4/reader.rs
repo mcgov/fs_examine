@@ -5,9 +5,12 @@ use super::extent::*;
 use super::inode::*;
 use super::superblock::*;
 use super::*;
-use crate::headers::reader::read_header_from_offset;
+use crate::headers::reader::{read_bytes_from_file, read_header_from_offset};
+use crate::headers::summer;
 use colored::*;
 use crc::*;
+use lazy_static::lazy_static;
+use uuid::Uuid;
 
 pub struct Part {
     pub file: String,
@@ -112,22 +115,6 @@ impl Part {
             }
         }
         // TODO:
-    }
-    pub fn read_fs_block(&mut self) {
-        self.s.debug_print_some_stuf();
-        if self.s.metadata_csum() {
-            
-                &Algorithm::<u16> {
-                    poly: 0x8005,
-                    init: 0,
-                    refin: true,
-                    refout: true,
-                    xorout: 0,
-                    check: 0,
-                    residue: 0,
-                }
-            }
-        }
 
         //validate each one, these have checksums
         println!(
@@ -136,4 +123,138 @@ impl Part {
             self.s.number_of_groups()
         );
     }
+
+    pub fn validate_block_groups(&mut self) {
+        self.s.debug_print_some_stuf();
+        if self.s.metadata_csum() {
+            let csum_seed = self.s.checksum_seed;
+            unsafe {
+                Algo32.init = csum_seed;
+            }
+            for bgid in 0..self.bg.len() {
+                let mut bytes: Vec<u8> = vec![];
+
+                for byte in self.s.uuid {
+                    bytes.push(byte);
+                }
+                for byte in <u32>::to_le_bytes(bgid.try_into().unwrap()) {
+                    bytes.push(byte);
+                }
+                let bg_item = self.bg.get(bgid).unwrap();
+                let bg_start = bg_item.start;
+                bytes.append(&mut reader::read_bytes_from_file(
+                    &self.file, bg_start, 0x1e,
+                ));
+                bytes.push(0);
+                bytes.push(0); //fake checksum field
+                if self.s.uses_64bit() && self.s.desc_size > 32 {
+                    bytes.append(&mut reader::read_bytes_from_file(
+                        &self.file,
+                        bg_start + 0x20,
+                        (self.s.desc_size - 0x20) as u64,
+                    ));
+                }
+
+                unsafe {
+                    let crcsum = summer::crc32_bytes(&self.file, &Algo32, bytes);
+                    if bg_item.b32.as_ref().unwrap().checksum as u32 != (crcsum & 0xffff) {
+                        panic!("checksum did not match!!");
+                    }
+                }
+            }
+        } else if self.s.has_feature_gdt_csum() {
+            // old version
+            for bgid in 0..self.bg.len() {
+                let mut bytes: Vec<u8> = vec![];
+
+                let mut bytesdisk =
+                    reader::read_bytes_from_file(&self.file, self.start + 1024 + 0x68, 16);
+
+                bytes.append(&mut bytesdisk);
+                println!(
+                    "{:x?}",
+                    reader::read_bytes_from_file(&self.file, self.start + 1024 + 0x68, 16)
+                );
+                println!("{:x?}", bytes);
+                println!("bgid:{}", bgid);
+                println!("desc_size {}", self.s.superblock);
+                for byte in <u32>::to_le_bytes(bgid as u32 + 1 + self.s.superblock as u32) {
+                    bytes.push(byte);
+                }
+                println!("{:x?}", bytes);
+
+                let bg_item = self.bg.get(bgid).unwrap();
+                let bg_start = bg_item.start;
+                bytes.append(&mut reader::read_bytes_from_file(
+                    &self.file, bg_start, 0x1e,
+                ));
+
+                println!("{:x?}", bytes);
+                println!("{:x?}", bg_item.b32.as_ref().unwrap());
+                let a = summer::crc16_bytes(&self.file, &Algo161, bytes.clone());
+                println!("{:x?} {:x?}", a, !a,);
+                let b = summer::crc16_bytes(&self.file, &Algo162, bytes.clone());
+                println!("{:x?} {:x?}", b, !b);
+                let c = summer::crc16_bytes(&self.file, &Algo163, bytes.clone());
+                println!("{:x?} {:x?}", c, !c,);
+                let crcsum = summer::crc16_bytes(&self.file, &Algo16, bytes.clone());
+                let bgcrc = bg_item.b32.as_ref().unwrap().checksum;
+                if bgcrc != (crcsum & 0xffff) {
+                    panic!(
+                        "checksum did not match: {:x} {:x} {:x} {:x}",
+                        crcsum, !crcsum, !bgcrc, bgcrc
+                    );
+                } else {
+                    println!("checksum matches for bg {}", bgid);
+                }
+            }
+        }
+    }
 }
+
+static Algo16: Algorithm<u16> = Algorithm::<u16> {
+    poly: 0x8005,
+    init: 0xFFFF,
+    refin: true,
+    refout: true,
+    xorout: 0xffff,
+    check: 0,
+    residue: 0,
+};
+static Algo161: Algorithm<u16> = Algorithm::<u16> {
+    poly: 0x8005,
+    init: 0xFFFF,
+    refin: false,
+    refout: true,
+    xorout: 0xffff,
+    check: 0,
+    residue: 0,
+};
+static Algo162: Algorithm<u16> = Algorithm::<u16> {
+    poly: 0x8005,
+    init: 0xFFFF,
+    refin: true,
+    refout: false,
+    xorout: 0xffff,
+    check: 0,
+    residue: 0,
+};
+static Algo163: Algorithm<u16> = Algorithm::<u16> {
+    poly: 0x8005,
+    init: 0xFFFF,
+    refin: false,
+    refout: false,
+    xorout: 0xffff,
+    check: 0,
+    residue: 0,
+};
+
+static mut Algo32: Algorithm<u32> = Algorithm::<u32> {
+    poly: 0x04c11db7,
+    init: 0,
+    refin: true,
+    refout: true,
+    xorout: 0xFFFFFFFF,
+    check: 0,
+    residue: 0,
+};

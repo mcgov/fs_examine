@@ -110,6 +110,43 @@ where
     Ok(data)
 }
 
+const guid_index: [u8; 16] = [3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15];
+const uuid_index: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+fn _parse_uuid(uuid: &str, indexes: [u8; 16]) -> [u8; 16] {
+    const si: [u8; 16] = [0, 2, 4, 6, 9, 11, 14, 16, 19, 21, 24, 26, 28, 30, 32, 34];
+    let mut b = [0u8; 16];
+    for i in 0..16 {
+        let hii = si[i] + 0;
+        let loi = si[i] + 1;
+        let bytes = uuid.as_bytes();
+        let hib = bytes[hii as usize];
+        let lob = bytes[loi as usize];
+        let his = String::from_utf8(vec![hib]).unwrap();
+        let lob = String::from_utf8(vec![lob]).unwrap();
+        let hi = <u8>::from_str_radix(&his, 16).unwrap();
+        let lo = <u8>::from_str_radix(&lob, 16).unwrap();
+
+        b[indexes[i] as usize] = (hi << 4) | lo;
+    }
+    b
+}
+
+pub fn parse_guid(uuid: &str) -> [u8; 16] {
+    _parse_uuid(uuid, guid_index)
+}
+
+pub fn parse_uuid(uuid: &str) -> [u8; 16] {
+    _parse_uuid(uuid, uuid_index)
+}
+
+pub fn guid_byteswap(bytes: [u8; 16]) -> [u8; 16] {
+    let mut swapped = [0u8; 16];
+    for i in 0..bytes.len() {
+        swapped[guid_index[i] as usize] = bytes[i];
+    }
+    swapped
+}
+
 pub fn uuid_deserialize<'de, D>(d: D) -> Result<Uuid, D::Error>
 where
     D: Deserializer<'de>,
@@ -117,34 +154,8 @@ where
     // mixed endian field whyy
     // going to discover there was a library that already did this at some point
     let data = <[u8; 16]>::deserialize(d)?;
-    let mut reversed = [0u8; 16];
-    let first = &data[..4];
-    let second = &data[4..6];
-    let third = &data[6..8];
-    let fourth = &data[8..10];
-    let last = &data[10..];
-    let mut counter = 0;
-    for i in first.iter().rev() {
-        reversed[counter] = *i;
-        counter += 1;
-    }
-    for i in second.iter().rev() {
-        reversed[counter] = *i;
-        counter += 1;
-    }
-    for i in third.iter().rev() {
-        reversed[counter] = *i;
-        counter += 1;
-    }
-    for i in fourth.iter() {
-        reversed[counter] = *i;
-        counter += 1;
-    }
-    for i in last.iter() {
-        reversed[counter] = *i;
-        counter += 1;
-    }
-    Ok(uuid::Builder::from_bytes(reversed).build())
+    let guid = guid_byteswap(data);
+    Ok(Uuid::from_slice(&guid).unwrap())
 }
 
 pub fn bitfield_fetch<T: Sized + PrimInt>(target: T, bitmask: T) -> bool {
