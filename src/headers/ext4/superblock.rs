@@ -219,13 +219,21 @@ impl Superblock {
             println!("64bit_support : {}", print_bool(self.uses_64bit()));
             println!("Ext Attrs : {}", print_bool(self.uses_ext_attr()));
             println!("Flex BG : {}", print_bool(self.uses_flex_bg()));
-            println!("MMP : {}", self.uses_mmp());
-            println!("Journal (internal) : {}", self.uses_journal());
             println!(
                 "FlexBG Size: val: {} size 0x{:X?}",
                 self.log_groups_per_flex,
                 self.flex_bg_size()
             );
+            println!(
+                "checksum seed??: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_incompat,
+                    breaks_compat::USES_CSUM_SEED
+                ))
+            );
+            println!("MMP : {}", self.uses_mmp());
+            println!("Journal (internal) : {}", self.uses_journal());
+
             println!(
                 "Uses EA Inode present?: {}",
                 print_bool(bitfield_fetch::<u32>(

@@ -151,7 +151,6 @@ pub fn uuid_deserialize<'de, D>(d: D) -> Result<Uuid, D::Error>
 where
     D: Deserializer<'de>,
 {
-    // mixed endian field whyy
     // going to discover there was a library that already did this at some point
     let data = <[u8; 16]>::deserialize(d)?;
     let guid = guid_byteswap(data);

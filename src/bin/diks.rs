@@ -28,8 +28,6 @@ enjoy this fun header and don't bother reading this main it's
 just for me to mess around and is super messy
 */
 
-const SMOL_BLOCKS: u64 = 512; //this needs a rename
-
 fn main() {
 	let file_arg = env::args().nth(1).unwrap();
 
@@ -55,7 +53,7 @@ fn main() {
 			//continue;
 			//}
 			ext4_reader.populate_block_groups();
-			ext4_reader.validate_block_groups();
+			ext4_reader.validate_block_groups(); // genuinely stumped on what's broken in the crc16 for 32bit.
 		}
 	}
 
