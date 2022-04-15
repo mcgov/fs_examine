@@ -169,7 +169,9 @@ impl Part {
 
                 let mut bytesdisk =
                     reader::read_bytes_from_file(&self.file, self.start + 1024 + 0x68, 16);
-                bytes.append(&mut bytesdisk);
+                assert_eq!(bytesdisk, self.s.uuid);
+
+                bytes.append(&mut self.s.uuid.to_vec());
                 // println!(
                 //     "{:x?}",
                 //     reader::read_bytes_from_file(&self.file, self.start + 1024 + 0x68, 16)
@@ -177,7 +179,7 @@ impl Part {
                 // println!("{:x?}", bytes);
                 // println!("bgid:{}", bgid);
                 // println!("desc_size {}", self.s.superblock);
-                for byte in <u32>::to_le_bytes(bgid as u32 + 1 + 1) {
+                for byte in <u32>::to_le_bytes(bgid as u32) {
                     bytes.push(byte);
                 }
                 //println!("{:x?}", bytes);
@@ -194,7 +196,7 @@ impl Part {
                         bg_item.b32.as_ref().unwrap().clone(),
                     );
                     //println!("as:{:02x?}", bites[..bites.len() - 2].to_vec());
-                    assert_eq!(bitecopy, bites[..bites.len() - 2].to_vec())
+                    assert_eq!(bitecopy, bites[..bites.len() - 2].to_vec());
                     //bytes.append(&mut bites[..bites.len() - 2].to_vec())
                 }
 
