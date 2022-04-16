@@ -11,6 +11,7 @@ extern crate chrono;
 extern crate colored;
 use chrono::prelude::*;
 use colored::*;
+use std::io::BufReader;
 
 pub enum Endianness {
     Big,
@@ -24,13 +25,14 @@ pub fn get_offset_from_block_number(block_0: u64, index: u64, block_size: u64) -
 pub fn read_bytes_from_file(file_arg: &str, offset: u64, size: u64) -> Vec<u8> {
     //let output = format!("Reading from 0x{:X}", offset).yellow();
     //println!("{}", output);
-    let mut file = File::open(file_arg).unwrap();
-    let res = file.seek(SeekFrom::Start(offset as u64)).unwrap();
+    let file = File::open(file_arg).unwrap();
+    let mut reader: BufReader<File> = BufReader::new(file);
+    let res = reader.seek(SeekFrom::Start(offset as u64)).unwrap();
     if res != offset {
         panic!("Failed to seek to offset\n");
     }
     let mut file_data: Vec<u8> = vec![0; size.try_into().unwrap()];
-    file.read_exact(&mut file_data[..]).unwrap();
+    reader.read_exact(&mut file_data[..]).unwrap();
     file_data
 }
 
@@ -226,7 +228,11 @@ pub trait HasHeaderMagic {
                 match_types!(LittleEndian)
             }
         }
-        println!("{} == {} ?", found_magic, self.magic_field_upcast());
+        println!(
+            "found:{:X} == expected:{:X} ?",
+            found_magic,
+            self.magic_field_upcast()
+        );
         found_magic == self.magic_field_upcast()
     }
 }
