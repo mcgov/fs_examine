@@ -29,6 +29,7 @@ impl Part {
                     &self.file,
                     bg_offset + std::mem::size_of::<BlockGroupDescriptor32>() as u64,
                 );
+                println!("{:#x?} {:#x?}", bg32, bg64);
                 let bgboi = Bg::init(bg_offset, Some(bg32), Some(bg64));
                 //bgboi.print();
                 self.bg.push(bgboi);
