@@ -36,7 +36,7 @@ pub enum PartitionType {
 #[derive(Debug, Clone)]
 pub struct Partition {
     pub p_type: PartitionType,
-    p_offset: u64,
+    pub p_offset: u64,
     p_size: u64,
     p_name: String,
 }

@@ -1,18 +1,14 @@
 use crate::headers::reader::*;
-use crate::headers::summer;
 use crate::prettify_output;
 use colored::*;
-use crc::Algorithm;
 use serde::Deserialize;
-use std::ops::Range;
-use uuid::Uuid;
 
 // __(le|u)([0-9]+)\s+([a-z_]+)(.*)
 //pub $3 : u$2, //$4
 
 // This shit is variable length depending on the bitness
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Copy, Clone)]
 #[repr(packed)]
 pub struct BlockGroupDescriptor32 {
   pub block_bitmap_lo: u32,      // 	Lower 32-bits of location of block bitmap.
@@ -66,7 +62,8 @@ impl BlockGroupDescriptor32 {
   }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Copy, Clone)]
+#[repr(packed)]
 pub struct BlockGroupDescriptor64 {
   pub block_bitmap_hi: u32,      // 	Upper 32-bits of location of block bitmap.
   pub inode_bitmap_hi: u32,      // 	Upper 32-bits of location of inodes bitmap.

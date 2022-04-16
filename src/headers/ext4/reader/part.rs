@@ -1,4 +1,8 @@
-use reader::*;
+use super::superblock::*;
+use super::*;
+use crate::headers::reader::read_header_from_offset;
+use crate::headers::summer;
+use uuid::Uuid;
 
 impl Part {
     pub fn init(file: String, sb: Superblock, start: u64) -> Part {
@@ -49,7 +53,17 @@ impl Part {
         );
     }
 
+    pub fn populate_inodes(&mut self) {
+        for i in 0..self.bg.len() {
+            self.bg[i].populate_inodes(&self.file, &self.s, self.start);
+        }
+    }
+
     pub fn validate_block_groups(&mut self) {
+        println!(
+            "IS same {} ",
+            summer::CRC16_TABLE == summer::EXT_CRC16_TABLE
+        );
         self.s.debug_print_some_stuf();
         if self.s.metadata_csum() {
             let csum_seed = self.s.checksum_seed;
@@ -89,6 +103,7 @@ impl Part {
             }
         } else if self.s.has_feature_gdt_csum() {
             // old version
+            return; // skip for now since it's broken.
             for bgid in 0..self.bg.len() {
                 let mut bytes: Vec<u8> = vec![];
 
@@ -97,90 +112,39 @@ impl Part {
                 assert_eq!(bytesdisk, self.s.uuid);
 
                 bytes.append(&mut self.s.uuid.to_vec());
-                // println!(
-                //     "{:x?}",
-                //     reader::read_bytes_from_file(&self.file, self.start + 1024 + 0x68, 16)
-                // );
-                // println!("{:x?}", bytes);
-                // println!("bgid:{}", bgid);
-                // println!("desc_size {}", self.s.superblock);
                 for byte in <u32>::to_le_bytes(bgid as u32) {
                     bytes.push(byte);
                 }
-                //println!("{:x?}", bytes);
 
                 let bg_item = self.bg.get(bgid).unwrap();
 
                 let bg_start = bg_item.start;
                 let bitecopy = reader::read_bytes_from_file(&self.file, bg_start, 0x1e);
-                //println!("dk:{:02x?}", bitecopy);
-                //bytes.append(&mut reader::read_bytes_from_file(
-                //    &self.file, bg_start, 0x1e,
-                //));
-                // wondering if linux will give a different checksum if on a BE system?
-                // they use the structure in memory.
+
                 unsafe {
                     let bites = std::mem::transmute::<BlockGroupDescriptor32, [u8; 0x20]>(
                         bg_item.b32.as_ref().unwrap().clone(),
                     );
-                    //println!("as:{:02x?}", bites[..bites.len() - 2].to_vec());
                     assert_eq!(bitecopy, bites[..bites.len() - 2].to_vec());
                     bytes.append(&mut bites[..bites.len() - 2].to_vec())
                 }
 
-                //println!("{:02x?}", bytes);
-                //println!("{:x?}", bg_item.b32.as_ref().unwrap());
-                let crcsum = summer::crc16(0xffff, bytes.clone());
-                let bgcrc = bg_item.b32.as_ref().unwrap().checksum;
-                if u16::to_le(bgcrc) != (crcsum & 0xffff) {
-                    println!(
-                        "{} checksum did not match (but it's probably this tool that's broken): {:04x} {:04x} {:04x} {:04x}",
-                        "bolo".yellow(), crcsum, !crcsum, !bgcrc, bgcrc
-                    )
-                } else {
-                    println!("checksum matches for bg {:x}", bgid);
-                }
+                let bg32 = bg_item.b32.as_ref().unwrap();
+                let crcsum = summer::crc16(!0, bytes.clone());
+                let bgcrc = bg32.checksum;
+                /*  // this is broken. I give up and am defeated.
+                if bgcrc != crcsum {
+                     println!(
+                         "{} checksum did not match (but it's this tool that's broken): {:04x} {:04x} {:04x} {:04x}",
+                         "bolo".yellow(), crcsum, !crcsum, !bgcrc, bgcrc
+                     )
+                 } else {
+                     println!("checksum matches for bg {:x}", bgid);
+                 } */
             }
         }
     }
 }
-
-static Algo16: Algorithm<u16> = Algorithm::<u16> {
-    poly: 0x8005,
-    init: 0xFFFF,
-    refin: true,
-    refout: true,
-    xorout: 0xffff,
-    check: 0,
-    residue: 0,
-};
-static Algo161: Algorithm<u16> = Algorithm::<u16> {
-    poly: 0x8005,
-    init: 0xFFFF,
-    refin: false,
-    refout: true,
-    xorout: 0xffff,
-    check: 0,
-    residue: 0,
-};
-static Algo162: Algorithm<u16> = Algorithm::<u16> {
-    poly: 0x8005,
-    init: 0xFFFF,
-    refin: true,
-    refout: false,
-    xorout: 0xffff,
-    check: 0,
-    residue: 0,
-};
-static Algo163: Algorithm<u16> = Algorithm::<u16> {
-    poly: 0x8005,
-    init: 0xFFFF,
-    refin: false,
-    refout: false,
-    xorout: 0xffff,
-    check: 0,
-    residue: 0,
-};
 
 static mut Algo32: Algorithm<u32> = Algorithm::<u32> {
     poly: 0x04c11db7,

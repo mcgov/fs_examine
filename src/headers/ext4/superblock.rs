@@ -5,7 +5,6 @@ use colored::*;
 use serde::Deserialize;
 use serde_big_array::BigArray;
 use std::fmt::Debug;
-use uuid::Uuid;
 
 // source of truth: https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout
 // also used https://wiki.osdev.org/Ext4
