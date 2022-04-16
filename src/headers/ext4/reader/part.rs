@@ -60,10 +60,6 @@ impl Part {
     }
 
     pub fn validate_block_groups(&mut self) {
-        println!(
-            "IS same {} ",
-            summer::CRC16_TABLE == summer::EXT_CRC16_TABLE
-        );
         self.s.debug_print_some_stuf();
         if self.s.metadata_csum() {
             let csum_seed = self.s.checksum_seed;
@@ -104,44 +100,45 @@ impl Part {
         } else if self.s.has_feature_gdt_csum() {
             // old version
             return; // skip for now since it's broken.
-            for bgid in 0..self.bg.len() {
-                let mut bytes: Vec<u8> = vec![];
+                    /*
+                    for bgid in 0..self.bg.len() {
+                        let mut bytes: Vec<u8> = vec![];
 
-                let mut bytesdisk =
-                    reader::read_bytes_from_file(&self.file, self.start + 1024 + 0x68, 16);
-                assert_eq!(bytesdisk, self.s.uuid);
+                        let mut bytesdisk =
+                            reader::read_bytes_from_file(&self.file, self.start + 1024 + 0x68, 16);
+                        assert_eq!(bytesdisk, self.s.uuid);
 
-                bytes.append(&mut self.s.uuid.to_vec());
-                for byte in <u32>::to_le_bytes(bgid as u32) {
-                    bytes.push(byte);
-                }
+                        bytes.append(&mut self.s.uuid.to_vec());
+                        for byte in <u32>::to_le_bytes(bgid as u32) {
+                            bytes.push(byte);
+                        }
 
-                let bg_item = self.bg.get(bgid).unwrap();
+                        let bg_item = self.bg.get(bgid).unwrap();
 
-                let bg_start = bg_item.start;
-                let bitecopy = reader::read_bytes_from_file(&self.file, bg_start, 0x1e);
+                        let bg_start = bg_item.start;
+                        let bitecopy = reader::read_bytes_from_file(&self.file, bg_start, 0x1e);
 
-                unsafe {
-                    let bites = std::mem::transmute::<BlockGroupDescriptor32, [u8; 0x20]>(
-                        bg_item.b32.as_ref().unwrap().clone(),
-                    );
-                    assert_eq!(bitecopy, bites[..bites.len() - 2].to_vec());
-                    bytes.append(&mut bites[..bites.len() - 2].to_vec())
-                }
+                        unsafe {
+                            let bites = std::mem::transmute::<BlockGroupDescriptor32, [u8; 0x20]>(
+                                bg_item.b32.as_ref().unwrap().clone(),
+                            );
+                            assert_eq!(bitecopy, bites[..bites.len() - 2].to_vec());
+                            bytes.append(&mut bites[..bites.len() - 2].to_vec())
+                        }
 
-                let bg32 = bg_item.b32.as_ref().unwrap();
-                let crcsum = summer::crc16(!0, bytes.clone());
-                let bgcrc = bg32.checksum;
-                /*  // this is broken. I give up and am defeated.
-                if bgcrc != crcsum {
-                     println!(
-                         "{} checksum did not match (but it's this tool that's broken): {:04x} {:04x} {:04x} {:04x}",
-                         "bolo".yellow(), crcsum, !crcsum, !bgcrc, bgcrc
-                     )
-                 } else {
-                     println!("checksum matches for bg {:x}", bgid);
-                 } */
-            }
+                        let bg32 = bg_item.b32.as_ref().unwrap();
+                        let crcsum = summer::crc16(!0, bytes.clone());
+                        let bgcrc = bg32.checksum;
+                        /*  // this is broken. I give up and am defeated.
+                        if bgcrc != crcsum {
+                             println!(
+                                 "{} checksum did not match (but it's this tool that's broken): {:04x} {:04x} {:04x} {:04x}",
+                                 "bolo".yellow(), crcsum, !crcsum, !bgcrc, bgcrc
+                             )
+                         } else {
+                             println!("checksum matches for bg {:x}", bgid);
+                         } */
+                    }*/
         }
     }
 }
