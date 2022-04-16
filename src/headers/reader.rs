@@ -17,36 +17,48 @@ pub enum Endianness {
     Big,
     Little,
 }
+#[derive(Debug)]
+pub struct OnDisk {
+    pub file: String,
+    pub reader: BufReader<File>,
+}
 
 pub fn get_offset_from_block_number(block_0: u64, index: u64, block_size: u64) -> u64 {
     block_0 + index * block_size
 }
 
-pub fn read_bytes_from_file(file_arg: &str, offset: u64, size: u64) -> Vec<u8> {
-    //let output = format!("Reading from 0x{:X}", offset).yellow();
-    //println!("{}", output);
-    let file = File::open(file_arg).unwrap();
-    let mut reader: BufReader<File> = BufReader::new(file);
-    let res = reader.seek(SeekFrom::Start(offset as u64)).unwrap();
-    if res != offset {
-        panic!("Failed to seek to offset\n");
+pub fn new(file_arg: &str) -> OnDisk {
+    OnDisk {
+        file: file_arg.to_string(),
+        reader: BufReader::new(File::open(file_arg).unwrap()),
     }
-    let mut file_data: Vec<u8> = vec![0; size.try_into().unwrap()];
-    reader.read_exact(&mut file_data[..]).unwrap();
-    file_data
 }
 
-pub fn read_header_from_offset<Header: Sized + DeserializeOwned>(
-    file_arg: &str,
-    offset: u64,
-) -> Header {
-    let header: Header = {
-        let size = size_of::<Header>() as u64;
-        let file_data = read_bytes_from_file(file_arg, offset, size);
-        // read the bytes into the struct
-        read_header_from_bytevec::<Header>(file_data)
-    };
-    header
+impl OnDisk {
+    pub fn read_bytes_from_file(&mut self, offset: u64, size: u64) -> Vec<u8> {
+        //let output = format!("Reading from 0x{:X}", offset).yellow();
+        //println!("{}", output);
+        let res = self.reader.seek(SeekFrom::Start(offset as u64)).unwrap();
+        if res != offset {
+            panic!("Failed to seek to offset\n");
+        }
+        let mut file_data: Vec<u8> = vec![0; size.try_into().unwrap()];
+        self.reader.read_exact(&mut file_data[..]).unwrap();
+        file_data
+    }
+
+    pub fn read_header_from_offset<Header: Sized + DeserializeOwned>(
+        &mut self,
+        offset: u64,
+    ) -> Header {
+        let header: Header = {
+            let size = size_of::<Header>() as u64;
+            let file_data = self.read_bytes_from_file(offset, size);
+            // read the bytes into the struct
+            read_header_from_bytevec::<Header>(file_data)
+        };
+        header
+    }
 }
 
 pub fn read_header_from_bytevec<Header: Sized + DeserializeOwned>(bytes: Vec<u8>) -> Header {
@@ -189,12 +201,9 @@ pub trait HasHeaderMagic {
 
     // this should check the magic value based on the partition start
     // for FS main headers or from the header start for headers
-    fn check_magic_field(&self, file_arg: &str, offset: u64) -> bool {
-        let magic_bytes = read_bytes_from_file(
-            &file_arg,
-            offset + self.magic_field_offset(),
-            self.magic_field_size(),
-        );
+    fn check_magic_field(&self, ondisk: &mut OnDisk, offset: u64) -> bool {
+        let magic_bytes = ondisk
+            .read_bytes_from_file(offset + self.magic_field_offset(), self.magic_field_size());
 
         let found_magic: u128;
         macro_rules! upcast {

@@ -1,4 +1,4 @@
-use super::reader::{print_bool, read_bytes_from_file};
+use super::reader::{print_bool, OnDisk};
 use crc::{Algorithm, Crc};
 use std::ops::Range;
 
@@ -22,24 +22,24 @@ pub trait Summable64<T: Summable = Self> {
 }
 
 pub fn struct_validate_checksum32<Structure: Summable + Summable32>(
-    file_arg: &str,
+    reader: &mut OnDisk,
     instance: &Structure,
     label: &str,
     offset: u64,
 ) -> bool {
-    let chksum = crc32_structure_from_disk::<Structure>(&file_arg, &instance, offset);
+    let chksum = crc32_structure_from_disk::<Structure>(reader, &instance, offset);
     let result = instance.validate_checksum(chksum);
     print_valid_checksum(label, result);
     result
 }
 
 pub fn struct_validate_checksum16<Structure: Summable + Summable16>(
-    file_arg: &str,
+    reader: &mut OnDisk,
     instance: &Structure,
     label: &str,
     offset: u64,
 ) -> bool {
-    let chksum = crc16_structure_from_disk::<Structure>(&file_arg, &instance, offset);
+    let chksum = crc16_structure_from_disk::<Structure>(reader, &instance, offset);
     let result = instance.validate_checksum(chksum);
     print_valid_checksum(label, result);
     result
@@ -48,10 +48,14 @@ pub fn struct_validate_checksum16<Structure: Summable + Summable16>(
 pub fn print_valid_checksum(name: &str, result: bool) {
     println!("Valid checksum {}?: {}", name, print_bool(result));
 }
-fn gather_and_include<T: Summable>(file_arg: &str, summable: &T, start_offset: u64) -> Vec<u8> {
+fn gather_and_include<T: Summable>(
+    reader: &mut OnDisk,
+    summable: &T,
+    start_offset: u64,
+) -> Vec<u8> {
     let struct_start = start_offset + summable.range_to_include().start as u64;
     let struct_size = (summable.range_to_include().end - summable.range_to_include().start) as u64;
-    let mut struct_bytes = read_bytes_from_file(&file_arg, struct_start, struct_size as u64);
+    let mut struct_bytes = reader.read_bytes_from_file(struct_start, struct_size as u64);
     for range in summable.ranges_to_zero() {
         for i in range.start..range.end {
             struct_bytes[i] = 0;
@@ -61,11 +65,11 @@ fn gather_and_include<T: Summable>(file_arg: &str, summable: &T, start_offset: u
 }
 
 pub fn crc16_structure_from_disk<T: Summable + Summable16>(
-    file_arg: &str,
+    reader: &mut OnDisk,
     summable: &T,
     start_offset: u64,
 ) -> u16 {
-    let struct_bytes = gather_and_include(file_arg, summable, start_offset);
+    let struct_bytes = gather_and_include(reader, summable, start_offset);
     let summer = Crc::<u16>::new(&summable.crc_parameters());
     let mut digest = summer.digest();
     digest.update(&struct_bytes);
@@ -73,11 +77,11 @@ pub fn crc16_structure_from_disk<T: Summable + Summable16>(
 }
 
 pub fn crc32_structure_from_disk<T: Summable + Summable32>(
-    file_arg: &str,
+    reader: &mut OnDisk,
     summable: &T,
     start_offset: u64,
 ) -> u32 {
-    let struct_bytes = gather_and_include(file_arg, summable, start_offset);
+    let struct_bytes = gather_and_include(reader, summable, start_offset);
     let summer = Crc::<u32>::new(&summable.crc_parameters());
     let mut digest = summer.digest();
     digest.update(&struct_bytes);
@@ -85,12 +89,12 @@ pub fn crc32_structure_from_disk<T: Summable + Summable32>(
 }
 
 pub fn crc32_bytes_from_disk(
-    file_arg: &str,
+    reader: &mut OnDisk,
     algorithm: &'static Algorithm<u32>,
     start_offset: u64,
     size: u64,
 ) -> u32 {
-    let struct_bytes = read_bytes_from_file(&file_arg, start_offset, size);
+    let struct_bytes = reader.read_bytes_from_file(start_offset, size);
     let summer = Crc::<u32>::new(algorithm);
     let mut digest = summer.digest();
     digest.update(&struct_bytes);

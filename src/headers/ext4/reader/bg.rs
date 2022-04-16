@@ -59,7 +59,7 @@ impl Bg {
         bg32.is_uninitialized()
     }
 
-    pub fn populate_inodes(&mut self, file: &str, s: &Superblock, start: u64) {
+    pub fn populate_inodes(&mut self, reader: &mut OnDisk, s: &Superblock, start: u64) {
         if self.is_uninitialized() {
             return;
         }
@@ -69,7 +69,7 @@ impl Bg {
         let inode_size = s.inode_size;
         for j in 0..s.inodes_per_group - self.get_free_inodes_count() {
             let current_offset = inode_table + inode_size as u64 * j as u64;
-            let inode = read_header_from_offset::<ext4::inode::Inode>(file, current_offset);
+            let inode = reader.read_header_from_offset::<ext4::inode::Inode>(current_offset);
             //inode.print_fields();
             let mut ino = Ino {
                 id: j + 1,
@@ -77,8 +77,8 @@ impl Bg {
                 attr: None,
                 extents: vec![],
             };
-            ino.populate_ext_attrs(&file, s, start);
-            ino.populate_extents(&file, s, start);
+            ino.populate_ext_attrs(reader, s, start);
+            ino.populate_extents(reader, s, start);
             self.ino.push(ino);
         }
     }

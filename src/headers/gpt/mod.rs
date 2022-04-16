@@ -68,23 +68,21 @@ impl Summable32 for Gpt {
 }
 
 impl Gpt {
-    pub fn create_partition_table(&self, file_arg: &str) -> Vec<PartitionEntry> {
+    pub fn create_partition_table(&self, reader: &mut OnDisk) -> Vec<PartitionEntry> {
         let mut partition_table: Vec<PartitionEntry> = vec![];
         for i in 0..self.gpe_table_entries as u64 {
-            let entry = read_header_from_offset::<PartitionEntry>(
-                &file_arg,
+            let entry = reader.read_header_from_offset::<PartitionEntry>(
                 self.gpe_table_start * SMOL_BLOCKS + i * self.gpe_table_entry_size as u64,
             );
             partition_table.push(entry);
         }
         partition_table
     }
-    pub fn print_partition_table(&self, file_arg: &str) {
+    pub fn print_partition_table(&self, reader: &mut OnDisk) {
         let mut unused_counter = 0;
         prettify_output!(PartitionEntry, purple, bright_purple, {
             for i in 0..self.gpe_table_entries as u64 {
-                let entry = read_header_from_offset::<PartitionEntry>(
-                    &file_arg,
+                let entry = reader.read_header_from_offset::<PartitionEntry>(
                     self.gpe_table_start * SMOL_BLOCKS + i * self.gpe_table_entry_size as u64,
                 );
                 if entry.is_in_use() {
@@ -109,16 +107,15 @@ impl Gpt {
     fn table_offset(&self) -> u64 {
         self.gpe_table_start * SMOL_BLOCKS
     }
-    pub fn get_parition(&self, file_arg: &str, index: u32) -> PartitionEntry {
-        read_header_from_offset::<PartitionEntry>(
-            &file_arg,
+    pub fn get_parition(&self, reader: &mut OnDisk, index: u32) -> PartitionEntry {
+        reader.read_header_from_offset::<PartitionEntry>(
             self.table_offset() + (index * self.gpe_table_entry_size) as u64,
         )
     }
 
-    pub fn validate_table_checksums(&self, file_arg: &str) -> bool {
+    pub fn validate_table_checksums(&self, reader: &mut OnDisk) -> bool {
         let table_crc = crate::headers::summer::crc32_bytes_from_disk(
-            file_arg,
+            reader,
             self.crc_parameters(),
             self.table_offset(),
             self.gpe_table_entries as u64 * self.gpe_table_entry_size as u64,

@@ -1,11 +1,11 @@
 use super::superblock::*;
 use super::*;
-use crate::headers::reader::read_header_from_offset;
+use crate::headers::reader::*;
 use crate::headers::summer;
 impl Part {
-    pub fn init(file: String, sb: Superblock, start: u64) -> Part {
+    pub fn init(reader: OnDisk, sb: Superblock, start: u64) -> Part {
         Part {
-            file: file.clone(),
+            reader: reader,
             start: start,
             s: sb,
             bg: vec![],
@@ -24,11 +24,14 @@ impl Part {
                     );
                 }
                 let bg_offset = bgdt_offset + combined_size as u64 * i;
-                let bg32 = read_header_from_offset::<BlockGroupDescriptor32>(&self.file, bg_offset);
-                let bg64 = read_header_from_offset::<BlockGroupDescriptor64>(
-                    &self.file,
-                    bg_offset + std::mem::size_of::<BlockGroupDescriptor32>() as u64,
-                );
+                let bg32 = self
+                    .reader
+                    .read_header_from_offset::<BlockGroupDescriptor32>(bg_offset);
+                let bg64 = self
+                    .reader
+                    .read_header_from_offset::<BlockGroupDescriptor64>(
+                        bg_offset + std::mem::size_of::<BlockGroupDescriptor32>() as u64,
+                    );
                 //println!("{:#x?} {:#x?}", bg32, bg64);
                 let bgboi = Bg::init(bg_offset, Some(bg32), Some(bg64));
                 //bgboi.print();
@@ -36,7 +39,9 @@ impl Part {
             } else {
                 let bg_offset =
                     bgdt_offset + std::mem::size_of::<BlockGroupDescriptor32>() as u64 * i;
-                let bg = read_header_from_offset::<BlockGroupDescriptor32>(&self.file, bg_offset);
+                let bg = self
+                    .reader
+                    .read_header_from_offset::<BlockGroupDescriptor32>(bg_offset);
                 let bgboi = Bg::init(bg_offset, Some(bg), None);
                 //bgboi.print();
                 self.bg.push(bgboi);
@@ -50,7 +55,7 @@ impl Part {
 
     pub fn populate_inodes(&mut self) {
         for i in 0..self.bg.len() {
-            self.bg[i].populate_inodes(&self.file, &self.s, self.start);
+            self.bg[i].populate_inodes(&mut self.reader, &self.s, self.start);
         }
     }
 
@@ -75,17 +80,17 @@ impl Part {
                 bytes.append(&mut bg_bytes.to_vec());
                 let bg_purt = self.bg.get(bgid).unwrap();
                 let bg_start = bg_purt.start;
-                bytes.append(&mut reader::read_bytes_from_file(
-                    &self.file, bg_start, 0x1e,
-                ));
+                let bg_ondisk = self.reader.read_bytes_from_file(bg_start, 0x1e);
+                bytes.append(&mut bg_ondisk.clone());
                 bytes.push(0);
                 bytes.push(0); //fake checksum field
                 if self.s.uses_64bit() && self.s.desc_size > 32 {
-                    bytes.append(&mut reader::read_bytes_from_file(
-                        &self.file,
-                        bg_start + 0x20,
-                        (self.s.desc_size - 0x20) as u64,
-                    ));
+                    bytes.append(
+                        &mut self.reader.read_bytes_from_file(
+                            bg_start + 0x20,
+                            (self.s.desc_size - 0x20) as u64,
+                        ),
+                    );
                 }
                 let bgd_actual = bg_purt.b32.unwrap();
 
@@ -97,8 +102,9 @@ impl Part {
                 }
             } else if self.s.has_feature_gdt_csum() {
                 // old crc16 version
-                let bytesdisk =
-                    reader::read_bytes_from_file(&self.file, self.start + 1024 + 0x68, 16);
+                let bytesdisk = self
+                    .reader
+                    .read_bytes_from_file(self.start + 1024 + 0x68, 16);
                 assert_eq!(bytesdisk, self.s.uuid);
 
                 bytes.append(&mut self.s.uuid.to_vec());
@@ -109,7 +115,7 @@ impl Part {
                 let bg_purt = self.bg.get(bgid).unwrap();
 
                 let bg_start = bg_purt.start;
-                let bitecopy = reader::read_bytes_from_file(&self.file, bg_start, 0x1e);
+                let bitecopy = self.reader.read_bytes_from_file(bg_start, 0x1e);
                 /* not sure whether BE requires using the in-memory fields yet.*/
                 unsafe {
                     let bites = std::mem::transmute::<BlockGroupDescriptor32, [u8; 0x20]>(
@@ -120,11 +126,12 @@ impl Part {
                     bytes.append(&mut bites[..bites.len() - 2].to_vec())
                 }
                 if self.s.uses_64bit() && self.s.desc_size > 32 {
-                    bytes.append(&mut reader::read_bytes_from_file(
-                        &self.file,
-                        bg_start + 0x20,
-                        (self.s.desc_size - 0x20) as u64,
-                    ));
+                    bytes.append(
+                        &mut self.reader.read_bytes_from_file(
+                            bg_start + 0x20,
+                            (self.s.desc_size - 0x20) as u64,
+                        ),
+                    );
                 }
 
                 let bg32 = bg_purt.b32.as_ref().unwrap();

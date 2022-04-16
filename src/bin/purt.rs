@@ -1,7 +1,7 @@
 use std::env;
 use xfat::headers::fs::disk;
 use xfat::headers::mbr;
-use xfat::headers::reader::*;
+use xfat::headers::reader;
 
 /*
 ██████╗ ██╗   ██╗██████╗ ████████╗
@@ -17,11 +17,12 @@ fn main() {
 	let file_arg = env::args().nth(1).unwrap();
 
 	// start building our disk
+	let mut reader = reader::new(&file_arg);
 	let mut d: disk::Disk = disk::Disk {
-		mbr: read_header_from_offset::<mbr::Mbr>(&file_arg, 0),
+		mbr: reader.read_header_from_offset::<mbr::Mbr>(0),
+		reader: reader,
 		pt_type: disk::PartitionTableType::Mbr,
 		partitions: vec![],
-		file_arg: file_arg.clone(),
 	};
 	d.mbr.pretty_print();
 

@@ -95,7 +95,7 @@ use crate::headers::reader::*;
 use colored::*;
 use std::mem::size_of;
 impl Ino {
-    pub fn populate_ext_attrs(&mut self, file: &str, s: &Superblock, block0: u64) {
+    pub fn populate_ext_attrs(&mut self, reader: &mut OnDisk, s: &Superblock, block0: u64) {
         if self.inode.get_ext_attrs_addr() != 0 {
             let extoffset = get_offset_from_block_number(
                 block0,
@@ -103,7 +103,7 @@ impl Ino {
                 s.block_size_bytes(),
             );
             type HdrType = ext4::extattrs::ExtendedAttrBlock;
-            let extadd = read_header_from_offset::<HdrType>(&file, extoffset);
+            let extadd = reader.read_header_from_offset::<HdrType>(extoffset);
             //println!("EXTATTR: {:#X?}", extadd);
             //println!("size of header: 0x{:x?}", size_of::<HdrType>());
             let size_of_hdr = size_of::<HdrType>() as u64;
@@ -113,8 +113,7 @@ impl Ino {
                 attrs: vec![],
             };
             loop {
-                let extblockbytes = read_bytes_from_file(
-                    &file,
+                let extblockbytes = reader.read_bytes_from_file(
                     extoffset + entry_offset + size_of_hdr,
                     0xff + ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME,
                 );
@@ -133,7 +132,7 @@ impl Ino {
         }
     }
 
-    pub fn populate_extents(&mut self, file: &str, s: &Superblock, block0: u64) {
+    pub fn populate_extents(&mut self, reader: &mut OnDisk, s: &Superblock, block0: u64) {
         let inode = self.inode;
         if !inode.inode_uses_extents() {
             return;
@@ -147,7 +146,7 @@ impl Ino {
 
         // skip dealing with the journal for now
         if self.id != s.journal_inum && inode.regular_file() {
-            let bytes = read_bytes_from_file(&file, offset, inode.get_file_size());
+            let bytes = reader.read_bytes_from_file(offset, inode.get_file_size());
             println!("Found file content... ");
             println!(
                 "{}",
@@ -161,7 +160,7 @@ impl Ino {
                 );
             }
             loop {
-                let bytes = read_bytes_from_file(&file, offset + table_offset, 263);
+                let bytes = reader.read_bytes_from_file(offset + table_offset, 263);
                 let dirent = dirent::get_dir_ent(&bytes[..]);
                 println!("dirent: {:x?}", dirent);
                 println!("file_type: {}", dirent.filetype_to_str());
