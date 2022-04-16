@@ -76,15 +76,16 @@ impl Partition {
 
 impl Disk {
     pub fn set_partition_table_type(&mut self) {
-        let _gpt_part = self.mbr.get_partition(0);
+        let gpt_part = self.mbr.get_partition(0);
 
-        match _gpt_part.get_partition_type() {
+        match gpt_part.get_partition_type() {
             mbr::PartitionId::Gpt => {
                 self.pt_type = PartitionTableType::Gpt;
             }
             _ => {
                 println!("MBR has no partitions listed.");
-                let gpt_part = self.get_gpt();
+                let _gpt_part = self.get_gpt(); // will panic on unrecognized part
+                self.pt_type = PartitionTableType::Gpt;
             }
         }
     }
