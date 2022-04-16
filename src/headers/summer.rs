@@ -24,19 +24,25 @@ pub trait Summable64<T: Summable = Self> {
 pub fn struct_validate_checksum32<Structure: Summable + Summable32>(
     file_arg: &str,
     instance: &Structure,
+    label: &str,
     offset: u64,
-) {
+) -> bool {
     let chksum = crc32_structure_from_disk::<Structure>(&file_arg, &instance, offset);
-    print_valid_checksum(stringify!(Gpt), instance.validate_checksum(chksum));
+    let result = instance.validate_checksum(chksum);
+    print_valid_checksum(label, result);
+    result
 }
 
 pub fn struct_validate_checksum16<Structure: Summable + Summable16>(
     file_arg: &str,
     instance: &Structure,
+    label: &str,
     offset: u64,
-) {
+) -> bool {
     let chksum = crc16_structure_from_disk::<Structure>(&file_arg, &instance, offset);
-    print_valid_checksum(stringify!(Gpt), instance.validate_checksum(chksum));
+    let result = instance.validate_checksum(chksum);
+    print_valid_checksum(label, result);
+    result
 }
 
 pub fn print_valid_checksum(name: &str, result: bool) {

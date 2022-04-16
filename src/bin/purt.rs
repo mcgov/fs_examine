@@ -27,6 +27,7 @@ fn main() {
 
 	// get that first partition to check for GPT
 	d.set_partition_table_type(); // will panic on unimplemented partition type
+	d.validate_headers();
 	d.register_partitions();
 	d.print_partitions_pretty();
 	for part in d.partitions.clone().into_iter() {

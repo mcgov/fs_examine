@@ -88,7 +88,6 @@ if inode.inode_uses_extents() {
 */
 use crate::headers::ext4;
 use crate::headers::ext4::dirent;
-use crate::headers::ext4::inode;
 use crate::headers::ext4::reader::Exatt;
 use crate::headers::ext4::reader::Ino;
 use crate::headers::ext4::superblock::Superblock;

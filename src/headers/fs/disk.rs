@@ -91,14 +91,27 @@ impl Disk {
         assert_eq!(matches!(self.pt_type, PartitionTableType::Gpt), true);
         let gpt =
             reader::read_header_from_offset::<gpt::Gpt>(&self.file_arg, constants::SMOL_BLOCKS);
-        summer::struct_validate_checksum32::<gpt::Gpt>(
-            &self.file_arg,
-            &gpt,
-            constants::SMOL_BLOCKS,
-        );
-        gpt.validate_table_checksums(&self.file_arg);
+        gpt.check_magic_field(&self.file_arg, constants::SMOL_BLOCKS);
         //gpt.print_partition_table(&self.file_arg);
         gpt
+    }
+    pub fn validate_headers(&self) -> bool {
+        match self.pt_type {
+            PartitionTableType::Gpt => {
+                let gpt = self.get_gpt();
+                let comparison = summer::struct_validate_checksum32::<gpt::Gpt>(
+                    &self.file_arg,
+                    &gpt,
+                    "GPT:header",
+                    constants::SMOL_BLOCKS,
+                );
+                return comparison && gpt.validate_table_checksums(&self.file_arg);
+            }
+            PartitionTableType::Mbr => {
+                // self.mbr fe
+                true
+            }
+        }
     }
 
     pub fn register_partitions(&mut self) {

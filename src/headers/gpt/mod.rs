@@ -68,29 +68,6 @@ impl Summable32 for Gpt {
 }
 
 impl Gpt {
-    // fn checksum(&self) -> u32 {
-    //     let summer = Crc::<u32>::new();
-    //     let mut digest = summer.digest();
-    //     digest.update(&self.signature);
-    //     digest.update(&self.revision);
-    //     digest.update(&<u32>::to_le_bytes(self.size));
-    //     digest.update(&[0, 0, 0, 0]); //checksum field is zeroed
-    //     digest.update(&self.reserved);
-    //     digest.update(&<u64>::to_le_bytes(self.self_lba));
-    //     digest.update(&<u64>::to_le_bytes(self.alt_lba));
-    //     digest.update(&<u64>::to_le_bytes(self.first_usable_block));
-    //     digest.update(&<u64>::to_le_bytes(self.last_usable_block));
-    //     digest.update(&self.guid);
-    //     digest.update(&<u64>::to_le_bytes(self.gpe_table_start));
-    //     digest.update(&<u32>::to_le_bytes(self.gpe_table_entries));
-    //     digest.update(&<u32>::to_le_bytes(self.gpe_table_entry_size));
-    //     digest.update(&<u32>::to_le_bytes(self.gpe_table_crc32));
-    //     //digest.update(&self.also_reserved);
-    //     let csum = digest.finalize();
-    //     println!("FOUND: {:x}", csum);
-    //     csum
-    // }
-
     pub fn create_partition_table(&self, file_arg: &str) -> Vec<PartitionEntry> {
         let mut partition_table: Vec<PartitionEntry> = vec![];
         for i in 0..self.gpe_table_entries as u64 {
@@ -147,7 +124,23 @@ impl Gpt {
             self.gpe_table_entries as u64 * self.gpe_table_entry_size as u64,
         );
         let comparison = table_crc == self.gpe_table_crc32;
-        print_valid_checksum("GPT TABLE", comparison);
+        print_valid_checksum("GPT:TABLE", comparison);
         comparison
+    }
+}
+
+impl HasHeaderMagic for Gpt {
+    fn magic_field_endianness(&self) -> Endianness {
+        return Endianness::Big;
+    }
+    fn magic_field_offset(&self) -> u64 {
+        0
+    }
+    fn magic_field_size(&self) -> u64 {
+        8
+    }
+    //EFI PART 45h 46h 49h 20h 50h 41h 52h 54h
+    fn magic_field_upcast(&self) -> u128 {
+        0x4546492050415254
     }
 }

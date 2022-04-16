@@ -44,12 +44,27 @@ impl fmt::Debug for Mbr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "MBR {{ (bootstrap above) disk_sig: {:x?} reserved: {:#x?} paritions: {:#x?} boot sig: {:#x?} }}",
+            "MBR {{ (bootstrap above) disk_sig: {:x?} reserved: {:#x?} boot sig: {:#x?} paritions: {:#x?}  }}",
             self.opt_disk_sig,
             self.opt_reserved,
-            self.partitions,
             self.boot_sector_sig,
+            self.partitions,
         )
+    }
+}
+
+impl HasHeaderMagic for Mbr {
+    fn magic_field_offset(&self) -> u64 {
+        0x01FE
+    }
+    fn magic_field_size(&self) -> u64 {
+        2
+    }
+    fn magic_field_endianness(&self) -> Endianness {
+        Endianness::Little
+    }
+    fn magic_field_upcast(&self) -> u128 {
+        0xaa55
     }
 }
 
