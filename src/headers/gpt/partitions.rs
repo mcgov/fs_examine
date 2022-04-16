@@ -1,6 +1,6 @@
 use crate::headers::fs::disk;
 use crate::headers::gpt::uuids;
-use crate::headers::reader::{bitfield_fetch, uuid_deserialize};
+use crate::headers::reader::{bitfield_fetch, guid_deserialize};
 use compiled_uuid::uuid;
 use serde::de;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -16,9 +16,9 @@ https://developer.apple.com/library/archive/technotes/tn2166/_index.html#//apple
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PartitionEntry {
-    #[serde(deserialize_with = "uuid_deserialize")]
+    #[serde(deserialize_with = "guid_deserialize")]
     pub type_guid: Uuid,
-    #[serde(deserialize_with = "uuid_deserialize")]
+    #[serde(deserialize_with = "guid_deserialize")]
     pub unique_guid: Uuid,
     pub first_lba: u64,
     pub last_lba: u64,

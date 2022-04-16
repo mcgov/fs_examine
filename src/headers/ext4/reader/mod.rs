@@ -1,5 +1,4 @@
 use super::block_group::*;
-use super::dirent::*;
 use super::extattrs::*;
 use super::extent::*;
 use super::inode::*;
@@ -7,7 +6,6 @@ use super::superblock::Superblock;
 use super::*;
 use crate::headers::reader::read_bytes_from_file;
 use colored::*;
-use crc::*;
 
 pub struct Part {
     pub file: String,

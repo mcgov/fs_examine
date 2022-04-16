@@ -89,11 +89,11 @@ if inode.inode_uses_extents() {
 use crate::headers::ext4;
 use crate::headers::ext4::dirent;
 use crate::headers::ext4::inode;
-use crate::headers::ext4::inode::Inode;
 use crate::headers::ext4::reader::Exatt;
 use crate::headers::ext4::reader::Ino;
 use crate::headers::ext4::superblock::Superblock;
 use crate::headers::reader::*;
+use colored::*;
 use std::mem::size_of;
 impl Ino {
     pub fn populate_ext_attrs(&mut self, file: &str, s: &Superblock, block0: u64) {
@@ -136,43 +136,46 @@ impl Ino {
 
     pub fn populate_extents(&mut self, file: &str, s: &Superblock, block0: u64) {
         let inode = self.inode;
-        if inode.inode_uses_extents() {
-            let extent = inode.get_extent();
-            println!("Extent: {:#X?}", extent);
-            let read_block = extent.leaf.get_block();
-            let block_size = s.block_size_bytes();
-            let offset = get_offset_from_block_number(block0, read_block, block_size);
-            let mut table_offset = 0;
+        if !inode.inode_uses_extents() {
+            return;
+        }
+        let extent = inode.get_extent();
+        println!("Extent: {:#X?}", extent);
+        let read_block = extent.leaf.get_block();
+        let block_size = s.block_size_bytes();
+        let offset = get_offset_from_block_number(block0, read_block, block_size);
+        let mut table_offset = 0;
 
-            if self.id != s.journal_inum
-                && bitfield_fetch::<u16>(inode.mode, inode::filemode_bitflags::mutex::S_IFREG)
-            {
-                let bytes = read_bytes_from_file(&file, offset, inode.get_file_size());
-                println!("Found file content... ");
-                println!("{}", String::from_utf8(bytes).unwrap().to_string());
-            } else if bitfield_fetch::<u16>(inode.mode, inode::filemode_bitflags::mutex::S_IFDIR) {
-                if inode.uses_hash_tree_directories() {
-                    println!(
+        // skip dealing with the journal for now
+        if self.id != s.journal_inum && inode.regular_file() {
+            let bytes = read_bytes_from_file(&file, offset, inode.get_file_size());
+            println!("Found file content... ");
+            println!(
+                "{}",
+                String::from_utf8(bytes).unwrap().to_string().bright_green()
+            );
+        } else if inode.directory() {
+            if inode.uses_hash_tree_directories() {
+                println!(
                     "{}",
                     "Hash tree directories not implemented. Probably going to miss reading some directories here 😢"
                 );
+            }
+            loop {
+                let bytes = read_bytes_from_file(&file, offset + table_offset, 263);
+                let dirent = dirent::get_dir_ent(&bytes[..]);
+                println!("dirent: {:x?}", dirent);
+                println!("file_type: {}", dirent.filetype_to_str());
+                // this logic isn't right yet
+                if dirent.inode == 0
+                    || dirent.rec_len as u64 + table_offset == block_size
+                    || table_offset == block_size
+                    || dirent.filetype == dirent::file_type::FAKE_TAIL_ENTRY_CHECKSUM
+                {
+                    break;
                 }
-                loop {
-                    let bytes = read_bytes_from_file(&file, offset + table_offset, 263);
-                    let dirent = dirent::get_dir_ent(&bytes[..]);
-                    println!("dirent: {:x?}", dirent);
-                    println!("file_type: {}", dirent.filetype_to_str());
-                    // this logic isn't right yet
-                    if dirent.inode == 0
-                        || dirent.rec_len as u64 + table_offset == block_size
-                        || table_offset == block_size
-                        || dirent.filetype == dirent::file_type::FAKE_TAIL_ENTRY_CHECKSUM
-                    {
-                        break;
-                    }
-                    table_offset += dirent.record_size() as u64;
-                    //honestly most of this logic *waves* isn't right
-                }
+                table_offset += dirent.record_size() as u64;
+                //honestly most of this logic *waves* isn't right
             }
         }
     }

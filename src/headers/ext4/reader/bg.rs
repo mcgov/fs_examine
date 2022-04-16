@@ -1,7 +1,6 @@
 use crate::headers::ext4::block_group::*;
 use crate::headers::ext4::reader::Bg;
 use crate::headers::ext4::reader::Ino;
-use crate::headers::ext4::reader::Part;
 use crate::headers::ext4::superblock::Superblock;
 use crate::headers::reader::*;
 use crate::headers::*;
@@ -55,21 +54,18 @@ impl Bg {
         free_count
     }
 
+    pub fn is_uninitialized(&self) -> bool {
+        let bg32 = self.b32.unwrap();
+        bg32.is_uninitialized()
+    }
+
     pub fn populate_inodes(&mut self, file: &str, s: &Superblock, start: u64) {
-        let mut is64 = false;
-        match self.b64 {
-            Some(_) => {
-                is64 = true;
-            }
-            None => {}
-        }
-        let bg32 = self.b32.as_ref().unwrap();
-        if bg32.is_uninitialized() {
+        if self.is_uninitialized() {
             return;
         }
-        let inode_table =
-            get_offset_from_block_number(start, self.get_inode_table_block(), s.block_size_bytes())
-                as u64;
+        let block_table = self.get_inode_table_block();
+        let bs = s.block_size_bytes();
+        let inode_table = get_offset_from_block_number(start, block_table, bs) as u64;
         let inode_size = s.inode_size;
         for j in 0..s.inodes_per_group - self.get_free_inodes_count() {
             let current_offset = inode_table + inode_size as u64 * j as u64;

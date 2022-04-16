@@ -89,9 +89,6 @@ impl MbrPartitionEntry {
             Some(x) => {
                 return x;
             }
-            _ => {
-                panic!("Unhelpful partition id error!");
-            }
         }
     }
 }

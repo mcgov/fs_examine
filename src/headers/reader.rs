@@ -110,14 +110,15 @@ where
     Ok(data)
 }
 
-const guid_index: [u8; 16] = [3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15];
-const uuid_index: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+const GUID_INDEX: [u8; 16] = [3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15];
+const UUID_INDEX: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
 fn _parse_uuid(uuid: &str, indexes: [u8; 16]) -> [u8; 16] {
-    const si: [u8; 16] = [0, 2, 4, 6, 9, 11, 14, 16, 19, 21, 24, 26, 28, 30, 32, 34];
-    let mut b = [0u8; 16];
+    const START_INDEX: [u8; 16] = [0, 2, 4, 6, 9, 11, 14, 16, 19, 21, 24, 26, 28, 30, 32, 34];
+    let mut out = [0u8; 16];
     for i in 0..16 {
-        let hii = si[i] + 0;
-        let loi = si[i] + 1;
+        let hii = START_INDEX[i] + 0;
+        let loi = START_INDEX[i] + 1;
         let bytes = uuid.as_bytes();
         let hib = bytes[hii as usize];
         let lob = bytes[loi as usize];
@@ -126,32 +127,32 @@ fn _parse_uuid(uuid: &str, indexes: [u8; 16]) -> [u8; 16] {
         let hi = <u8>::from_str_radix(&his, 16).unwrap();
         let lo = <u8>::from_str_radix(&lob, 16).unwrap();
 
-        b[indexes[i] as usize] = (hi << 4) | lo;
+        out[indexes[i] as usize] = (hi << 4) | lo;
     }
-    b
+    out
 }
 
 pub fn parse_guid(uuid: &str) -> [u8; 16] {
-    _parse_uuid(uuid, guid_index)
+    _parse_uuid(uuid, GUID_INDEX)
 }
 
 pub fn parse_uuid(uuid: &str) -> [u8; 16] {
-    _parse_uuid(uuid, uuid_index)
+    _parse_uuid(uuid, UUID_INDEX)
 }
 
 pub fn guid_byteswap(bytes: [u8; 16]) -> [u8; 16] {
     let mut swapped = [0u8; 16];
     for i in 0..bytes.len() {
-        swapped[guid_index[i] as usize] = bytes[i];
+        swapped[GUID_INDEX[i] as usize] = bytes[i];
     }
     swapped
 }
-
-pub fn uuid_deserialize<'de, D>(d: D) -> Result<Uuid, D::Error>
+// pretty sure this Uuid class is more trouble than it's worth.
+// but not stoked to redo the entire gpt::uuids file.
+pub fn guid_deserialize<'de, D>(d: D) -> Result<Uuid, D::Error>
 where
     D: Deserializer<'de>,
 {
-    // going to discover there was a library that already did this at some point
     let data = <[u8; 16]>::deserialize(d)?;
     let guid = guid_byteswap(data);
     Ok(Uuid::from_slice(&guid).unwrap())

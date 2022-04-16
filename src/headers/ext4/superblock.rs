@@ -173,7 +173,7 @@ impl Superblock {
     }
     pub fn metadata_csum(&self) -> bool {
         bitfield_fetch(
-            self.feature_compat,
+            self.feature_ro_compat,
             compat_readonly::RO_COMPAT_METADATA_CSUM,
         )
     }
@@ -184,7 +184,11 @@ impl Superblock {
         1 << self.log_groups_per_flex
     }
     pub fn has_feature_gdt_csum(&self) -> bool {
-        bitfield_fetch(self.feature_compat, compat_readonly::RO_COMPAT_GDT_CSUM)
+        bitfield_fetch(self.feature_ro_compat, compat_readonly::RO_COMPAT_GDT_CSUM)
+    }
+
+    pub fn has_feature_checksum_seed(&self) -> bool {
+        bitfield_fetch::<u32>(self.feature_incompat, breaks_compat::USES_CSUM_SEED)
     }
 
     pub fn debug_print_some_stuf(&self) {
@@ -223,12 +227,11 @@ impl Superblock {
                 self.log_groups_per_flex,
                 self.flex_bg_size()
             );
+            println!("Metadata csum?:{}", print_bool(self.metadata_csum()));
+            println!("GDT csum?:{}", print_bool(self.has_feature_gdt_csum()));
             println!(
                 "checksum seed??: {}",
-                print_bool(bitfield_fetch::<u32>(
-                    self.feature_incompat,
-                    breaks_compat::USES_CSUM_SEED
-                ))
+                print_bool(self.has_feature_checksum_seed())
             );
             println!("MMP : {}", self.uses_mmp());
             println!("Journal (internal) : {}", self.uses_journal());
