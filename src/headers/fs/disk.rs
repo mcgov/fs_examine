@@ -77,12 +77,14 @@ impl Partition {
 impl Disk {
     pub fn set_partition_table_type(&mut self) {
         let _gpt_part = self.mbr.get_partition(0);
+
         match _gpt_part.get_partition_type() {
             mbr::PartitionId::Gpt => {
                 self.pt_type = PartitionTableType::Gpt;
             }
             _ => {
-                panic!("No other partition type is implemented yet.");
+                println!("MBR has no partitions listed.");
+                let gpt_part = self.get_gpt();
             }
         }
     }
@@ -91,7 +93,9 @@ impl Disk {
         assert_eq!(matches!(self.pt_type, PartitionTableType::Gpt), true);
         let gpt =
             reader::read_header_from_offset::<gpt::Gpt>(&self.file_arg, constants::SMOL_BLOCKS);
-        gpt.check_magic_field(&self.file_arg, constants::SMOL_BLOCKS);
+        if !gpt.check_magic_field(&self.file_arg, constants::SMOL_BLOCKS) {
+            panic!("This was not a GPT partition!");
+        }
         //gpt.print_partition_table(&self.file_arg);
         gpt
     }
