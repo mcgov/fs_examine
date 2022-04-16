@@ -226,7 +226,7 @@ pub trait HasHeaderMagic {
                 match_types!(LittleEndian)
             }
         }
-
+        println!("{} == {} ?", found_magic, self.magic_field_upcast());
         found_magic == self.magic_field_upcast()
     }
 }

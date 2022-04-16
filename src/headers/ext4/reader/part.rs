@@ -29,7 +29,7 @@ impl Part {
                     &self.file,
                     bg_offset + std::mem::size_of::<BlockGroupDescriptor32>() as u64,
                 );
-                println!("{:#x?} {:#x?}", bg32, bg64);
+                //println!("{:#x?} {:#x?}", bg32, bg64);
                 let bgboi = Bg::init(bg_offset, Some(bg32), Some(bg64));
                 //bgboi.print();
                 self.bg.push(bgboi);
@@ -42,13 +42,9 @@ impl Part {
                 self.bg.push(bgboi);
             }
         }
-        // TODO:
-
-        //validate each one, these have checksums
         println!(
-            "{} sanity check: {:X}",
+            "{}",
             format!("found {:X} block group descriptors.", self.bg.len()).blue(),
-            self.s.number_of_groups()
         );
     }
 
@@ -60,22 +56,25 @@ impl Part {
 
     pub fn validate_block_groups(&mut self) {
         self.s.debug_print_some_stuf();
-        if self.s.metadata_csum() {
-            let mut csum_seed: u32 = self.s.checksum_seed;
-            if !self.s.has_feature_checksum_seed() {
-                csum_seed = !0;
-            }
-            for bgid in 0..self.bg.len() {
-                let mut bytes: Vec<u8> = vec![];
-
-                for byte in self.s.uuid {
-                    bytes.push(byte);
+        for bgid in 0..self.bg.len() {
+            let mut bytes: Vec<u8> = vec![];
+            if self.s.metadata_csum() {
+                //crc32c with optional seed from sb
+                // seed allows csum to not depend on uuid
+                // to allow volume re-uuid-ing
+                //if seed exists, it's the precomputed uuid crc
+                let mut csum_seed: u32 = self.s.checksum_seed;
+                if !self.s.has_feature_checksum_seed() {
+                    // else seed is 0xffffffff (or should have been)
+                    csum_seed = !0;
+                    for byte in self.s.uuid {
+                        bytes.push(byte);
+                    }
                 }
-                for byte in <u32>::to_le_bytes(bgid.try_into().unwrap()) {
-                    bytes.push(byte);
-                }
-                let bg_item = self.bg.get(bgid).unwrap();
-                let bg_start = bg_item.start;
+                let bg_bytes = <u32>::to_le_bytes(bgid.try_into().unwrap());
+                bytes.append(&mut bg_bytes.to_vec());
+                let bg_purt = self.bg.get(bgid).unwrap();
+                let bg_start = bg_purt.start;
                 bytes.append(&mut reader::read_bytes_from_file(
                     &self.file, bg_start, 0x1e,
                 ));
@@ -88,20 +87,16 @@ impl Part {
                         (self.s.desc_size - 0x20) as u64,
                     ));
                 }
-                let bgd = bg_item.b32.unwrap();
+                let bgd_actual = bg_purt.b32.unwrap();
 
                 let crcsum = summer::crc32c(csum_seed, bytes);
-                if bgd.checksum as u32 != (crcsum & 0xffff) {
+                if bgd_actual.checksum as u32 != (crcsum & 0xffff) {
                     println!("{}", "WARNING: checksum did not match!".yellow());
                 } else {
                     println!("BG#{} {}", bgid, "Checksum matches!".green());
                 }
-            }
-        } else if self.s.has_feature_gdt_csum() {
-            // old version
-            for bgid in 0..self.bg.len() {
-                let mut bytes: Vec<u8> = vec![];
-
+            } else if self.s.has_feature_gdt_csum() {
+                // old crc16 version
                 let bytesdisk =
                     reader::read_bytes_from_file(&self.file, self.start + 1024 + 0x68, 16);
                 assert_eq!(bytesdisk, self.s.uuid);
@@ -111,20 +106,28 @@ impl Part {
                     bytes.push(byte);
                 }
 
-                let bg_item = self.bg.get(bgid).unwrap();
+                let bg_purt = self.bg.get(bgid).unwrap();
 
-                let bg_start = bg_item.start;
+                let bg_start = bg_purt.start;
                 let bitecopy = reader::read_bytes_from_file(&self.file, bg_start, 0x1e);
-
+                /* not sure whether BE requires using the in-memory fields yet.*/
                 unsafe {
                     let bites = std::mem::transmute::<BlockGroupDescriptor32, [u8; 0x20]>(
-                        bg_item.b32.as_ref().unwrap().clone(),
+                        bg_purt.b32.as_ref().unwrap().clone(),
                     );
+                    // assert if they're not equal for now
                     assert_eq!(bitecopy, bites[..bites.len() - 2].to_vec());
                     bytes.append(&mut bites[..bites.len() - 2].to_vec())
                 }
+                if self.s.uses_64bit() && self.s.desc_size > 32 {
+                    bytes.append(&mut reader::read_bytes_from_file(
+                        &self.file,
+                        bg_start + 0x20,
+                        (self.s.desc_size - 0x20) as u64,
+                    ));
+                }
 
-                let bg32 = bg_item.b32.as_ref().unwrap();
+                let bg32 = bg_purt.b32.as_ref().unwrap();
                 let crcsum = summer::crc16(!0, bytes.clone());
                 let bgcrc = bg32.checksum;
                 if bgcrc != crcsum {
