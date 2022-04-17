@@ -134,12 +134,16 @@ impl Ino {
 
     pub fn populate_extents(&mut self, reader: &mut OnDisk, s: &Superblock, block0: u64) {
         let inode = self.inode;
+        inode.print_fields();
+
         if !inode.inode_uses_extents() {
             return;
         }
-        let extent = inode.get_extent();
-        println!("Extent: {:#X?}", extent);
-        let read_block = extent.leaf.get_block();
+        let mut extent = inode.get_extent();
+        extent.ascend(reader, block0, s.block_size_bytes());
+    }
+    /*
+    let read_block = extent.leaf.get_block();
         let block_size = s.block_size_bytes();
         let offset = get_offset_from_block_number(block0, read_block, block_size);
         let mut table_offset = 0;
@@ -176,5 +180,5 @@ impl Ino {
                 //honestly most of this logic *waves* isn't right
             }
         }
-    }
+    */
 }

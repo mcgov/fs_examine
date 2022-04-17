@@ -148,9 +148,10 @@ impl Inode {
     pub fn inode_uses_big_exattr(&self) -> bool {
         bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_EA_INODE)
     }
-    pub fn get_extent(&self) -> ExtentAttrEntry {
+    pub fn get_extent(&self) -> ExtentTree {
         assert_eq!(self.inode_uses_extents(), true);
-        read_header_from_bytes::<ExtentAttrEntry>(&self.block[..])
+        // needs to have ascend called after init
+        ExtentTree::init(self.block[..].try_into().unwrap())
     }
 
     pub fn get_ext_attrs_addr(&self) -> u64 {
