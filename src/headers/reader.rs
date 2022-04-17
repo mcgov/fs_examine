@@ -168,14 +168,7 @@ where
     D: Deserializer<'de>,
 {
     let data = <[u8; 16]>::deserialize(d)?;
-<<<<<<< HEAD
-    if <u16>::to_ne_bytes(0xFF00)[0] == 0 {
-        let guid = guid_byteswap(data);
-    }
-
-=======
     let guid = guid_byteswap(data);
->>>>>>> parent of 3072ce2 (be)
     Ok(Uuid::from_slice(&guid).unwrap())
 }
 
