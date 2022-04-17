@@ -171,8 +171,6 @@ where
 <<<<<<< HEAD
     if <u16>::to_ne_bytes(0xFF00)[0] == 0 {
         let guid = guid_byteswap(data);
-    } else {
-        let guid = data;
     }
 
 =======
