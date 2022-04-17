@@ -62,18 +62,23 @@ impl Bg {
 
     pub fn populate_inodes(&mut self, reader: &mut OnDisk, s: &Superblock, start: u64) {
         if self.is_uninitialized() {
-            println!("Skipping uninitialized block group at 0x{:X}", start);
+            println!("Skipping uninitialized block group...");
             return;
         }
         let block_table = self.get_inode_table_block();
         let bs = s.block_size_bytes();
         let inode_table = get_offset_from_block_number(start, block_table, bs) as u64;
         let inode_size = s.inode_size;
+        println!(
+            "found {} inodes",
+            s.inodes_per_group - self.get_free_inodes_count()
+        );
         for j in 0..s.inodes_per_group - self.get_free_inodes_count() {
             let current_offset = inode_table + inode_size as u64 * j as u64;
             let inode = reader.read_header_from_offset::<ext4::inode::Inode>(current_offset);
             //inode.print_fields();
             let mut ino = Ino {
+                start: current_offset,
                 id: j + 1,
                 inode: inode,
                 attr: None,
@@ -93,6 +98,8 @@ impl Bg {
                     println!("Content:{}, {}", cont.len(), format!("{}", cont.green()));
                 }
             }
+            ino.validate_checksum(reader, s, start);
+
             self.ino.push(ino);
         }
     }

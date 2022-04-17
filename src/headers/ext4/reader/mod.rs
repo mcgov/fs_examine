@@ -24,6 +24,7 @@ pub struct Bg {
 pub mod bg;
 
 pub struct Ino {
+    pub start: u64,
     pub id: u32,
     pub inode: Inode,
     pub attr: Option<Exatt>,

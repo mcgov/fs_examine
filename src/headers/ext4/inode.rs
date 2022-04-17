@@ -1,10 +1,10 @@
 use crate::headers::ext4::extent::*;
 use crate::headers::reader::*;
 use colored::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 
-#[derive(Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 #[repr(packed)]
 pub struct Inode {
     pub mode: u16,              //
@@ -43,6 +43,9 @@ pub struct Inode {
 }
 
 impl Inode {
+    pub fn checksum(&self) -> u32 {
+        self.checksum_lo as u32 | ((self.checksum_hi as u32) << 16)
+    }
     pub fn is_hugefile_inode(&self) -> bool {
         bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_HUGE_FILE)
     }

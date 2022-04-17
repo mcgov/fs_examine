@@ -86,12 +86,15 @@ if inode.inode_uses_extents() {
 }
 
 */
+use crate::headers::constants;
 use crate::headers::ext4;
 use crate::headers::ext4::dirent;
+use crate::headers::ext4::inode::Inode;
 use crate::headers::ext4::reader::Exatt;
 use crate::headers::ext4::reader::Ino;
 use crate::headers::ext4::superblock::Superblock;
 use crate::headers::reader::*;
+use crate::headers::summer;
 use colored::*;
 use std::mem::size_of;
 impl Ino {
@@ -134,7 +137,7 @@ impl Ino {
 
     pub fn populate_extents(&mut self, reader: &mut OnDisk, s: &Superblock, block0: u64) {
         let inode = self.inode;
-        //inode.print_fields();
+        inode.print_fields();
 
         if !inode.inode_uses_extents() {
             return;
@@ -142,6 +145,49 @@ impl Ino {
         let mut extent = inode.get_extent();
         extent.ascend(reader, block0, s.block_size_bytes());
         self.extent = Some(extent);
+    }
+
+    pub fn validate_checksum(&mut self, reader: &mut OnDisk, s: &Superblock, block0: u64) -> bool {
+        if !s.metadata_csum() {
+            println!("METADATA_CSUM not set, skipping inode csum validation");
+            return true;
+        }
+        let mut csum = s.checksum_seed;
+        if !s.has_feature_checksum_seed() {
+            csum = !0;
+        }
+        let mut inode = self.inode.clone();
+        inode.checksum_hi = 0;
+        inode.checksum_lo = 0;
+        let inode_size = s.inode_size;
+        let inode_des = bincode::serialize::<Inode>(&inode).unwrap();
+        let old_inode_size = constants::EXT4_INODE_CHECKSUM_HI_OFFSET as usize;
+        let mut inode_bytes = reader.read_bytes_from_file(self.start, s.inode_size as u64);
+        for i in 0..2 {
+            inode_bytes[constants::EXT4_INODE_CHECKSUM_LO_OFFSET as usize + i] = 0;
+            if inode_size > constants::EXT4_INODE_CHECKSUM_HI_OFFSET + 2 {
+                inode_bytes[constants::EXT4_INODE_CHECKSUM_HI_OFFSET as usize + i] = 0;
+            }
+        }
+        assert_eq!(inode_des[..s.inode_size as usize], inode_bytes);
+        println!("{:x?}", inode_bytes);
+        let mut byte_content = &inode_bytes[..s.inode_size as usize];
+        csum = summer::crc32c(csum, byte_content.to_vec());
+        let mut in_inode = self.inode.checksum();
+        if s.inode_size == constants::EXT4_GOOD_OLD_INODE_SIZE
+            || s.inode_size <= constants::EXT4_INODE_CHECKSUM_HI_OFFSET
+        {
+            csum &= 0xFFFF;
+            in_inode &= 0xFFFF;
+        }
+        println!(
+            "Validation checksum for inode {:X}: {:X} == {:X}: {}",
+            self.id,
+            in_inode,
+            csum,
+            print_bool(in_inode == csum)
+        );
+        in_inode == csum
     }
 
     pub fn get_file_content(&self, reader: &mut OnDisk, s: &Superblock, block0: u64) -> Vec<u8> {
