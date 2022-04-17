@@ -27,7 +27,7 @@ pub struct Ino {
     pub id: u32,
     pub inode: Inode,
     pub attr: Option<Exatt>,
-    pub extents: Vec<Extent>,
+    pub extent: Option<ExtentTree>,
     // can also have a hash tree
 }
 pub mod ino;
@@ -35,11 +35,4 @@ pub mod ino;
 pub struct Exatt {
     blk: ExtendedAttrBlock,
     attrs: Vec<ExtendedAttrEntry>,
-}
-
-pub struct Extent {
-    pub hdr: ExtentHeader,
-    pub branches: Vec<ExtentNode>,
-    pub leafs: Vec<ExtentLeaf>,
-    pub tail: Option<ExtentTail>,
 }

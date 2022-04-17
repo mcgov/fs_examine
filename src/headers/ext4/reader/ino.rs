@@ -134,13 +134,28 @@ impl Ino {
 
     pub fn populate_extents(&mut self, reader: &mut OnDisk, s: &Superblock, block0: u64) {
         let inode = self.inode;
-        inode.print_fields();
+        //inode.print_fields();
 
         if !inode.inode_uses_extents() {
             return;
         }
         let mut extent = inode.get_extent();
         extent.ascend(reader, block0, s.block_size_bytes());
+        self.extent = Some(extent);
+    }
+
+    pub fn get_file_content(&self, reader: &mut OnDisk, s: &Superblock, block0: u64) -> Vec<u8> {
+        if !self.inode.inode_uses_extents() {
+            return vec![];
+            //panic!("This inode doesn't use extents, this method shouldn't have been called")
+        }
+        let mut tree = self.extent.clone().unwrap();
+        tree.walk(
+            reader,
+            block0,
+            s.block_size_bytes(),
+            self.inode.get_file_size() as usize,
+        )
     }
     /*
     let read_block = extent.leaf.get_block();

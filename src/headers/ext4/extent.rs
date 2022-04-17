@@ -2,7 +2,7 @@ use crate::headers::reader;
 use crate::headers::reader::OnDisk;
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Copy, Clone)]
 #[repr(packed)]
 pub struct ExtentHeader {
     pub eh_magic: u16,      // 	Magic number, 0xF30A.
@@ -12,7 +12,13 @@ pub struct ExtentHeader {
     pub eh_generation: u32, // 	Generation of the tree. (Used by Lustre, but not standard ext4).
 }
 
-#[derive(Deserialize)]
+impl ExtentHeader {
+    pub fn check_magic(&self) -> bool {
+        self.eh_magic == 0xF30A
+    }
+}
+
+#[derive(Deserialize, Copy, Clone)]
 #[repr(packed)]
 pub struct ExtentNode {
     pub ei_block: u32,   // 	This index node covers file blocks from 'block' onward.
@@ -27,7 +33,7 @@ impl ExtentNode {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Copy, Clone)]
 #[repr(packed)]
 pub struct ExtentLeaf {
     pub ee_block: u32,    // 	First file block number that this extent covers.
@@ -35,17 +41,18 @@ pub struct ExtentLeaf {
     pub ee_start_hi: u16, // 	Upper 16-bits of the block number to which this extent points.
     pub ee_start_lo: u32, // 	Lower 32-bits of the block number to which this extent points.
 }
-#[derive(Deserialize)]
+
+#[derive(Deserialize, Copy, Clone)]
 #[repr(packed)]
 pub struct ExtentTail {
     pub eb_checksum: u32, // 	Checksum of the extent block, crc32c(uuid+inum+igeneration+extentblock)
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct ExtentTree {
     pub hdr: ExtentHeader,
     pub branch: Option<Vec<ExtentNode>>,
-    pub leaf: Option<Vec<ExtentLeaf>>, // FIXME: this is cheating, there can be more than one entry in the attrs
+    pub leaf: Option<Vec<ExtentLeaf>>,
     pub subtrees: Vec<ExtentTree>,
     pub tail: ExtentTail,
 }
@@ -64,11 +71,35 @@ impl ExtentLeaf {
         self.ee_len <= 32768
     }
     pub fn block_length(&self) -> u16 {
-        // note: not sure if this is blocks or bytes
         if self.leaf_initialized() {
             return self.ee_len;
         }
         0
+    }
+    pub fn bytes_covered(&self, block_size: u64) -> u64 {
+        self.block_length() as u64 * block_size
+    }
+    pub fn get_file_content(
+        &mut self,
+        reader: &mut OnDisk,
+        block_0: u64,
+        block_size: u64,
+        content_size: u64,
+    ) -> Vec<u8> {
+        let block = self.ee_block;
+        assert_eq!(self.leaf_initialized(), true);
+        let bytes_in_bloc = self.bytes_covered(block_size);
+        // println!(
+        //     "File block: 0x{:X} bytesin_bloc: 0x{:X} size: 0x{:X}",
+        //     block, bytes_in_bloc, content_size
+        // );
+
+        let offset =
+            reader::get_offset_from_block_number(block_0, self.content_block(), block_size);
+        if content_size > bytes_in_bloc {
+            return reader.read_bytes_from_file(offset, bytes_in_bloc);
+        }
+        reader.read_bytes_from_file(offset, content_size)
     }
 }
 
@@ -79,7 +110,7 @@ impl ExtentTree {
         let entries = header.eh_entries as usize;
         let max_entries = header.eh_max;
         let magic = header.eh_magic;
-        println!("magic: {:X}", magic);
+        assert_eq!(0xF30A, magic);
         if entries >= max_entries as usize {
             panic!("oops, entries larger than max entries");
         }
@@ -93,11 +124,11 @@ impl ExtentTree {
             // leaf town
             let mut leafs: Vec<ExtentLeaf> = vec![];
             for i in 0..entries {
-                println!("{}", i);
                 let leaf =
                     reader::read_header_from_bytes::<ExtentLeaf>(&block[sz_hdr + i * leaf_size..]);
+                //println!("b:{:x} l:{:x}", leaf.ee_block, leaf.ee_len);
                 if leaf.all_zero() {
-                    println!("empty leaf");
+                    //println!("empty leaf");
                 }
                 leafs.push(leaf);
             }
@@ -110,6 +141,11 @@ impl ExtentTree {
             for i in 0..entries {
                 let branch =
                     reader::read_header_from_bytes::<ExtentNode>(&block[sz_hdr + i * node_size..]);
+                // println!(
+                //     "{:x} {:x} {:x}",
+                //     branch.ei_block, branch.ei_leaf_lo, branch.ei_leaf_hi
+                // );
+
                 branches.push(branch);
             }
             branch_op = Some(branches);
@@ -125,9 +161,10 @@ impl ExtentTree {
         };
         return newtree;
     }
+
     pub fn ascend(&mut self, reader: &mut OnDisk, block_0: u64, block_size: u64) {
         let depth = self.hdr.eh_depth;
-        println!("ascending: node depth: {}", depth);
+        //println!("ascending: node depth: {}", depth);
         let entries = self.hdr.eh_max;
         if self.hdr.eh_depth != 0 {
             if matches!(self.branch, None) {
@@ -139,14 +176,54 @@ impl ExtentTree {
                 let addr = node.get_block();
                 let offset = reader::get_offset_from_block_number(block_0, addr, block_size);
                 // init the block
-                let size = 12 + (entries as u64 * 12) + 4;
-                println!("entries size {:X}", size);
-                let bytes = reader.read_bytes_from_file(offset, size);
+                let bytes = reader.read_bytes_from_file(offset, 12); //read a block
+                let header = reader::read_header_from_bytevec::<ExtentHeader>(bytes);
+                assert_eq!(header.check_magic(), true);
+                let next_block_size = 12 + (header.eh_entries as u64 * 12) + 4;
+                let next_node_block = reader.read_bytes_from_file(offset, next_block_size);
                 // add it to the list
-                let mut tree = ExtentTree::init(&bytes);
+                let mut tree = ExtentTree::init(&next_node_block);
                 tree.ascend(reader, block_0, block_size);
                 self.subtrees.push(tree);
             }
         }
+    }
+
+    pub fn walk(
+        &mut self,
+        reader: &mut OnDisk,
+        block_0: u64,
+        block_size: u64,
+        f_size: usize,
+    ) -> Vec<u8> {
+        //TODO: this is dumb, loading a huge file right into memory will broke thin
+        let depth = self.hdr.eh_depth;
+        let mut content: Vec<u8> = vec![];
+        //println!("walkng: node depth: {} size_left: {:X}", depth, f_size);
+        let mut bytes_left: u64 = 0;
+        if self.subtrees.len() == 0 {
+            match &self.leaf {
+                Some(leafs) => {
+                    //println!("leaves: {}", leafs.len());
+                    for mut leaf in leafs.clone() {
+                        bytes_left = (f_size - content.len()).try_into().unwrap();
+                        let mut bytes =
+                            leaf.get_file_content(reader, block_0, block_size, bytes_left);
+                        content.append(&mut bytes);
+                    }
+                }
+                None => {}
+            }
+            // we've populated already so subtrees should contain the info needed
+            // to get to the other leaves
+        }
+        for mut tree in self.subtrees.clone() {
+            // this doesn't take into account the file block order yet
+            bytes_left = (f_size - content.len()).try_into().unwrap();
+            let mut tree_bytes = tree.walk(reader, block_0, block_size, bytes_left as usize);
+            content.append(&mut tree_bytes);
+        }
+        //println!("Found content length: {:X}", content.len());
+        content
     }
 }

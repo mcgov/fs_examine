@@ -4,6 +4,7 @@ use crate::headers::ext4::reader::Ino;
 use crate::headers::ext4::superblock::Superblock;
 use crate::headers::reader::*;
 use crate::headers::*;
+use colored::*;
 impl Bg {
     pub fn init(
         start: u64,
@@ -75,10 +76,22 @@ impl Bg {
                 id: j + 1,
                 inode: inode,
                 attr: None,
-                extents: vec![],
+                extent: None,
             };
             ino.populate_ext_attrs(reader, s, start);
             ino.populate_extents(reader, s, start);
+            // doesn't differentiate between file content and dirents yet
+            if ino.id != s.journal_inum {
+                let cnt = ino.get_file_content(reader, s, start);
+                if cnt.len() > 0 && cnt.len() < 0x1000 {
+                    println!("Inode number: {}", ino.id);
+                    if cnt.len() > 0x100 {
+                        println!("{:X?}", &cnt[..100]);
+                    }
+                    let cont = String::from_utf8_lossy(&cnt);
+                    println!("Content:{}, {}", cont.len(), format!("{}", cont.green()));
+                }
+            }
             self.ino.push(ino);
         }
     }
