@@ -62,6 +62,7 @@ impl Bg {
 
     pub fn populate_inodes(&mut self, reader: &mut OnDisk, s: &Superblock, start: u64) {
         if self.is_uninitialized() {
+            println!("Skipping uninitialized block group at 0x{:X}", start);
             return;
         }
         let block_table = self.get_inode_table_block();
