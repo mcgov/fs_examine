@@ -133,7 +133,7 @@ impl Disk {
                 }
             }
             _ => {
-                panic!("Partition type not implemented: {:?}", self.pt_type);
+                panic!("Partition table type not implemented: {:?}", self.pt_type);
             }
         }
     }
