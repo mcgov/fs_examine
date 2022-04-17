@@ -152,10 +152,15 @@ impl Ino {
             println!("METADATA_CSUM not set, skipping inode csum validation");
             return true;
         }
-        let mut csum = s.checksum_seed;
-        if !s.has_feature_checksum_seed() {
-            csum = !0;
+        if self.seed == 0 || !s.has_feature_checksum_seed() {
+            let uuid = s.uuid.clone();
+            let inonum = u32::to_le_bytes(self.id);
+            let inogen = u32::to_le_bytes(self.inode.generation);
+            self.seed = summer::crc32c(!0, uuid.to_vec());
+            self.seed = summer::crc32c(self.seed, inonum.to_vec());
+            self.seed = summer::crc32c(self.seed, inogen.to_vec());
         }
+        let mut csum = self.seed;
         let mut inode = self.inode.clone();
         inode.checksum_hi = 0;
         inode.checksum_lo = 0;

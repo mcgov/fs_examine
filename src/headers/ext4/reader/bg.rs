@@ -83,6 +83,7 @@ impl Bg {
                 inode: inode,
                 attr: None,
                 extent: None,
+                seed: s.checksum_seed,
             };
             ino.populate_ext_attrs(reader, s, start);
             ino.populate_extents(reader, s, start);
