@@ -8,8 +8,8 @@ use serde_big_array::BigArray;
 #[repr(packed)]
 pub struct Inode {
     pub mode: u16,              //
-    pub uid: u16,               // 	Lower 16-bits of Owner UID.
-    pub size_lo: u32,           // 	Lower 32-bits of size in bytes.
+    pub uid: u16, // 	Lower 16-bits of Owner UID.
+    pub size_lo: u32, // 	Lower 32-bits of size in bytes.
     pub atime: u32, // 	Last access time, in seconds since the epoch. However, if the EA_INODE inode flag is set, this inode stores an extended attribute value and this field contains the checksum of the value.
     pub ctime: u32, //Last inode change time, in seconds since the epoch. However, if the EA_INODE inode flag is set, this inode stores an extended attribute value and this field contains the lower 32 bits of the attribute values reference count.
     pub mtime: u32, // 	Last data modification time, in seconds since the epoch. However, if the EA_INODE inode flag is set, this inode stores an extended attribute value and this field contains the number of the inode that owns the extended attribute.
@@ -21,7 +21,7 @@ pub struct Inode {
     pub ext_attr_refcount: u32, //sorry hurd
     #[serde(with = "BigArray")]
     pub block: [u8; 60], //block[EXT4_N_BLOCKS=15] 	Block map or extent tree. See the section "The Contents of inode.block".
-    pub generation: u32,   // 	File version (for NFS).
+    pub generation: u32, // 	File version (for NFS).
     pub file_acl_lo: u32, // 	Lower 32-bits of extended attribute block. ACLs are of course one of many possible extended attributes; I think the name of this field is a result of the first use of extended attributes being for ACLs.
     pub size_hi: u32, // aka dir_acl 	Upper 32-bits of file/directory size. In ext2/3 this field was named dir_acl, though it was usually set to zero and never used.
     pub obso_faddr: u32, // 	(Obsolete) fragment address.
@@ -36,28 +36,44 @@ pub struct Inode {
     pub ctime_extra: u32, // 	Extra change time bits. This provides sub-second precision. See Inode Timestamps section.
     pub mtime_extra: u32, // 	Extra modification time bits. This provides sub-second precision.
     pub atime_extra: u32, //Extra access time bits. This provides sub-second precision.
-    pub crtime: u32,      // 	File creation time, in seconds since the epoch.
+    pub crtime: u32, // 	File creation time, in seconds since the epoch.
     pub crtime_extra: u32, // 	Extra file creation time bits. This provides sub-second precision.
-    pub version_hi: u32,  // 	Upper 32-bits for version number.
-    pub projid: u32,      // 	Project ID.
+    pub version_hi: u32, // 	Upper 32-bits for version number.
+    pub projid: u32,     // 	Project ID.
 }
 
 impl Inode {
     pub fn checksum(&self) -> u32 {
-        self.checksum_lo as u32 | ((self.checksum_hi as u32) << 16)
+        self.checksum_lo as u32
+            | ((self.checksum_hi as u32) << 16)
     }
     pub fn is_hugefile_inode(&self) -> bool {
-        bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_HUGE_FILE)
+        bitfield_fetch::<u32>(
+            self.flags,
+            attr_bitflags::EXT4_HUGE_FILE,
+        )
     }
     pub fn print_fields(&self) {
-        println!("accessed: {:#?}", timestamp_to_string(self.atime as u64));
+        println!(
+            "accessed: {:#?}",
+            timestamp_to_string(self.atime as u64)
+        );
         println!(
             "Inode changed: {:#?}",
             timestamp_to_string(self.ctime as u64)
         );
-        println!("modified: {:#?}", timestamp_to_string(self.mtime as u64));
-        println!("deleted: {:#?}", timestamp_to_string(self.dtime as u64));
-        println!("uses extents: {}", print_bool(self.inode_uses_extents()));
+        println!(
+            "modified: {:#?}",
+            timestamp_to_string(self.mtime as u64)
+        );
+        println!(
+            "deleted: {:#?}",
+            timestamp_to_string(self.dtime as u64)
+        );
+        println!(
+            "uses extents: {}",
+            print_bool(self.inode_uses_extents())
+        );
         println!(
             "uses big attrs: {}",
             print_bool(self.inode_uses_big_exattr())
@@ -69,7 +85,11 @@ impl Inode {
                 attr_bitflags::EXT4_INLINE_DATA
             ))
         );
-        println!("{}:{}", "FILETYPE:".yellow(), self.filetype_to_str());
+        println!(
+            "{}:{}",
+            "FILETYPE:".yellow(),
+            self.filetype_to_str()
+        );
         println!(
             "Root directory? (unreliable) {}",
             print_bool(bitfield_fetch::<u32>(
@@ -79,9 +99,15 @@ impl Inode {
         );
         println!(
             "hashed entries?: {}",
-            print_bool(bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_INDEX))
+            print_bool(bitfield_fetch::<u32>(
+                self.flags,
+                attr_bitflags::EXT4_INDEX
+            ))
         );
-        println!("huge inode?: {}", print_bool(self.is_hugefile_inode()));
+        println!(
+            "huge inode?: {}",
+            print_bool(self.is_hugefile_inode())
+        );
         println!(
             "extended attr inode?: {}",
             print_bool(self.inode_has_extended_attrs())
@@ -90,45 +116,74 @@ impl Inode {
         if !self.inode_uses_extents() {
             println!("{:?}", self.block);
         } else {
-            println!("{}", "Uses extants, entries follow...".yellow());
+            println!(
+                "{}",
+                "Uses extants, entries follow...".yellow()
+            );
         }
-        println!("extended attrs pointer: 0x{:x}", self.get_ext_attrs_addr());
+        println!(
+            "extended attrs pointer: 0x{:x}",
+            self.get_ext_attrs_addr()
+        );
     }
 
     pub fn uses_hash_tree_directories(&self) -> bool {
-        bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_INDEX) //whats up w this flag name btw
+        bitfield_fetch::<u32>(
+            self.flags,
+            attr_bitflags::EXT4_INDEX,
+        ) //whats up w this flag name btw
     }
 
     pub fn regular_file(&self) -> bool {
-        bitfield_fetch::<u16>(self.mode, filemode_bitflags::mutex::S_IFREG)
+        bitfield_fetch::<u16>(
+            self.mode,
+            filemode_bitflags::mutex::S_IFREG,
+        )
     }
     pub fn directory(&self) -> bool {
-        bitfield_fetch::<u16>(self.mode, filemode_bitflags::mutex::S_IFDIR)
+        bitfield_fetch::<u16>(
+            self.mode,
+            filemode_bitflags::mutex::S_IFDIR,
+        )
     }
 
     pub fn filetype_to_str(&self) -> String {
         let ft: &str;
         match 0xF000 & self.mode {
             filemode_bitflags::mutex::S_IFBLK => {
-                ft = stringify!(filemode_bitflags::mutex::S_IFBLK);
+                ft = stringify!(
+                    filemode_bitflags::mutex::S_IFBLK
+                );
             }
             filemode_bitflags::mutex::S_IFCHR => {
-                ft = stringify!(filemode_bitflags::mutex::S_IFCHR);
+                ft = stringify!(
+                    filemode_bitflags::mutex::S_IFCHR
+                );
             }
             filemode_bitflags::mutex::S_IFDIR => {
-                ft = stringify!(filemode_bitflags::mutex::S_IFDIR);
+                ft = stringify!(
+                    filemode_bitflags::mutex::S_IFDIR
+                );
             }
             filemode_bitflags::mutex::S_IFIFO => {
-                ft = stringify!(filemode_bitflags::mutex::S_IFIFO);
+                ft = stringify!(
+                    filemode_bitflags::mutex::S_IFIFO
+                );
             }
             filemode_bitflags::mutex::S_IFLNK => {
-                ft = stringify!(filemode_bitflags::mutex::S_IFLNK);
+                ft = stringify!(
+                    filemode_bitflags::mutex::S_IFLNK
+                );
             }
             filemode_bitflags::mutex::S_IFREG => {
-                ft = stringify!(filemode_bitflags::mutex::S_IFREG);
+                ft = stringify!(
+                    filemode_bitflags::mutex::S_IFREG
+                );
             }
             filemode_bitflags::mutex::S_IFSOCK => {
-                ft = stringify!(filemode_bitflags::mutex::S_IFSOCK);
+                ft = stringify!(
+                    filemode_bitflags::mutex::S_IFSOCK
+                );
             }
 
             0 => {
@@ -143,13 +198,22 @@ impl Inode {
     }
 
     pub fn inode_has_extended_attrs(&self) -> bool {
-        bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_EA_INODE)
+        bitfield_fetch::<u32>(
+            self.flags,
+            attr_bitflags::EXT4_EA_INODE,
+        )
     }
     pub fn inode_uses_extents(&self) -> bool {
-        bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_EXTENTS)
+        bitfield_fetch::<u32>(
+            self.flags,
+            attr_bitflags::EXT4_EXTENTS,
+        )
     }
     pub fn inode_uses_big_exattr(&self) -> bool {
-        bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_EA_INODE)
+        bitfield_fetch::<u32>(
+            self.flags,
+            attr_bitflags::EXT4_EA_INODE,
+        )
     }
     pub fn get_extent(&self) -> ExtentTree {
         assert_eq!(self.inode_uses_extents(), true);
@@ -158,12 +222,17 @@ impl Inode {
     }
 
     pub fn get_ext_attrs_addr(&self) -> u64 {
-        self.file_acl_lo as u64 | ((self.file_acl_hi as u64) << 32)
+        self.file_acl_lo as u64
+            | ((self.file_acl_hi as u64) << 32)
     }
     pub fn get_file_size(&self) -> u64 {
         self.size_lo as u64 | ((self.size_hi as u64) << 32)
     }
-    pub fn get_inode_huge_file_size_bytes(&self, sb_huge_files: bool, sb_block_size: u32) -> u64 {
+    pub fn get_inode_huge_file_size_bytes(
+        &self,
+        sb_huge_files: bool,
+        sb_block_size: u32,
+    ) -> u64 {
         // If the huge_file feature flag is not set on the filesystem, the file
         // consumes i_blocks_lo 512-byte blocks on disk. If huge_file is set and
         // EXT4_HUGE_FILE_FL is NOT set in inode.i_flags, then the file consumes
@@ -172,10 +241,13 @@ impl Inode {
         // then this file consumes (i_blocks_lo + i_blocks_hi << 32) filesystem
         //blocks on disk.
         if sb_huge_files && self.is_hugefile_inode() {
-            let blocks = self.blocks_lo as u64 + ((self.blocks_hi as u64) << 32);
+            let blocks = self.blocks_lo as u64
+                + ((self.blocks_hi as u64) << 32);
             return blocks * sb_block_size as u64;
-        } else if sb_huge_files && !self.is_hugefile_inode() {
-            let combined = self.blocks_lo as u64 + ((self.blocks_hi as u64) << 32);
+        } else if sb_huge_files && !self.is_hugefile_inode()
+        {
+            let combined = self.blocks_lo as u64
+                + ((self.blocks_hi as u64) << 32);
             return combined as u64 * 512;
         }
         self.blocks_lo as u64 * 512
@@ -243,4 +315,19 @@ pub mod attr_bitflags {
                                                //Aggregate flags:
     pub const EXT4_USER_VISIBLE_MASK: u32 = 0x4BDFFF; //User-visible flags.
     pub const EXT4_USER_MODIFIEABLE_MASK: u32 = 0x4B80FF; //User-modifiable flags. Note that while EXT4_JOURNAL_DATA and EXT4_EXTENTS can be set with setattr, they are not in the kernel's EXT4_FL_USER_MODIFIABLE mask, since it needs to handle the setting of these flags in a special manner and they are masked out of the set of flags that are saved directly to i_flags.
+}
+
+pub mod specials {
+    pub const ZERO: u32 = 0; //Doesn't exist; there is no inode 0.
+    pub const DEFECTIVES: u32 = 1; //List of defective blocks.
+    pub const SLASH: u32 = 2; //Root directory.
+    pub const UQUOTA: u32 = 3; //User quota.
+    pub const GQUOTA: u32 = 4; //Group quota.
+    pub const BOOTLDR: u32 = 5; //Boot loader.
+    pub const UNDELETE: u32 = 6; //Undelete directory.
+    pub const RESIZE_INO: u32 = 7; //Reserved group descriptors inode. ("resize inode")
+    pub const JOURNAL: u32 = 8; //Journal inode.
+    pub const EXCLUDE: u32 = 9; //The "exclude" inode; for snapshots(?)
+    pub const REPLICA: u32 = 10; //Replica inode; used for some non-upstream feature?
+    pub const FIRST: u32 = 11; //Traditional first non-reserved inode. Usually this is the lost+found directory. See s_first_ino in the superblock.
 }
