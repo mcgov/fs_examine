@@ -35,6 +35,13 @@ pub struct Root {
                  * 8-byte struct dx_entry as fits in the
                  * rest of the data block. */
 }
+
+impl Root {
+    pub fn hash_version(&self) -> hash_versions::HashVer {
+        self.root_info.hash_version()
+    }
+}
+
 macro_rules! validate_field {
     ($field:expr,$value:expr) => {
         if $field != $value {
@@ -89,14 +96,43 @@ pub struct RootInfo {
                           * otherwise. */
     unused_flags: u8, //
 }
+
+impl RootInfo {
+    pub fn hash_version(&self) -> hash_versions::HashVer {
+        hash_versions::val_to_enum
+            [self.hash_version as usize]
+            .clone()
+    }
+}
 pub mod hash_versions {
-    const SLEGACY: u8 = 0;
-    const SHALF_MD4: u8 = 1;
-    const STEA: u8 = 2;
-    const ULEGACY: u8 = 3;
-    const UHALF_MD4: u8 = 4;
-    const UTEA: u8 = 5;
-    const SIPHASH: u8 = 6;
+    pub const SLEGACY: u8 = 0;
+    pub const SHALF_MD4: u8 = 1;
+    pub const STEA: u8 = 2;
+    pub const ULEGACY: u8 = 3;
+    pub const UHALF_MD4: u8 = 4;
+    pub const UTEA: u8 = 5;
+    pub const SIPHASH: u8 = 6;
+
+    #[derive(Clone, Debug)]
+    pub enum HashVer {
+        Legacy,
+        HalfMd4,
+        Tea,
+        ULegacy,
+        Utea,
+        UhalfMd4,
+        SipHash,
+    }
+
+    pub const val_to_enum: [HashVer; 7] = [
+        HashVer::Legacy,
+        HashVer::HalfMd4,
+        HashVer::Tea,
+        HashVer::ULegacy,
+        HashVer::Utea,
+        HashVer::UhalfMd4,
+        HashVer::SipHash,
+    ];
 }
 impl RootInfo {
     pub fn validate(&self) -> bool {

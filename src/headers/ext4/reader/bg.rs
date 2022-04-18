@@ -7,11 +7,13 @@ use crate::headers::*;
 use colored::*;
 impl Bg {
     pub fn init(
+        id: u32,
         start: u64,
         smol: Option<BlockGroupDescriptor32>,
         big: Option<BlockGroupDescriptor64>,
     ) -> Bg {
         Bg {
+            id: id,
             start: start,
             b32: smol,
             b64: big,
@@ -98,7 +100,7 @@ impl Bg {
             //inode.print_fields();
             let mut ino = Ino {
                 start: current_offset,
-                id: j + 1,
+                id: (j + 1) + self.id * s.inodes_per_group,
                 inode: inode,
                 attr: None,
                 extent: None,

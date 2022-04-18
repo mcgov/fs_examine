@@ -315,13 +315,17 @@ impl Ino {
             data.len()
         );
 
-        if s.uses_indexed_dirs() {
+        if s.uses_indexed_dirs()
+            && self.inode.uses_hash_tree_directories()
+        {
             let root = read_header_from_bytes::<
                 hashdir::Root,
             >(&data);
-
-            println!("{:X?}", root);
             root.validate(bs);
+
+            println!("{:X?}", root,);
+            println!("{:?}", root.hash_version());
+
             std::process::exit(0);
         } else {
             loop {

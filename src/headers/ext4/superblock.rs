@@ -549,7 +549,7 @@ impl Superblock {
                     self.feature_ro_compat,
                     compat_readonly::RO_COMPAT_EXTRA_ISIZE
                 ))
-            );
+                );
                 println!(
                     "Uses dirdata: {}",
                     print_bool(bitfield_fetch::<u32>(
@@ -572,24 +572,40 @@ impl Superblock {
                     ))
                 );
                 println!(
+                    "External journal device?: {}",
+                    print_bool(bitfield_fetch::<u32>(
+                        self.feature_incompat,
+                        breaks_compat::USES_JOURNAL_DEV
+                    ))
+                );
+
+                println!(
                 "Huge Inodes?: {}",
                 print_bool(bitfield_fetch::<u32>(
                     self.feature_compat,
                     compat_readonly::RO_COMPAT_HUGE_FILE
                 ))
-            );
+                );
+
                 println!(
-                "BTREE Flag?: {}",
-                print_bool(bitfield_fetch::<u32>(
-                    self.feature_ro_compat,
-                    compat_readonly::RO_COMPAT_BTREE_DIR
-                ))
-            );
-                println!(
-                    "Hashed directories??: {}",
+                    "HTREE dir indexes??: {}",
                     print_bool(bitfield_fetch::<u32>(
                         self.feature_compat,
                         compat_bitflags::COMPAT_DIR_INDEX
+                    ))
+                );
+                println!(
+                    "LARGE_DIR?: {}",
+                    print_bool(bitfield_fetch::<u32>(
+                        self.feature_compat,
+                        breaks_compat::USES_LARGEDIR
+                    ))
+                );
+                println!(
+                    "USES_ENCRYPT?: {}",
+                    print_bool(bitfield_fetch::<u32>(
+                        self.feature_compat,
+                        breaks_compat::USES_ENCRYPT
                     ))
                 );
                 println!(
@@ -658,8 +674,8 @@ pub mod compat_readonly {
     pub const RO_COMPAT_SPARSE_SUPER: u32 = 0x1; // 	Sparse superblocks. See the earlier discussion of
                                                  // this feature. .
     pub const RO_COMPAT_LARGE_FILE: u32 = 0x2; // 	Allow storing files larger than 2GiB .
-    pub const RO_COMPAT_BTREE_DIR: u32 = 0x4; // 	Was intended for use with htree directories, but was
-                                              // not needed. Not used in kernel or e2fsprogs .
+                                               //pub const RO_COMPAT_BTREE_DIR: u32 = 0x4; // 	Was intended for use with htree directories, but was
+                                               // not needed. Not used in kernel or e2fsprogs .
     pub const RO_COMPAT_HUGE_FILE: u32 = 0x8; // 	This filesystem has files whose space usage is stored
                                               // in i_blocks in units of filesystem blocks, not
                                               // 512-byte sectors. Inodes using this feature will be

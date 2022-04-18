@@ -46,6 +46,7 @@ impl Part {
                     );
                 //println!("{:#x?} {:#x?}", bg32, bg64);
                 let bgboi = Bg::init(
+                    i as u32,
                     bg_offset,
                     Some(bg32),
                     Some(bg64),
@@ -61,8 +62,12 @@ impl Part {
                 let bg = self
                     .reader
                     .read_header_from_offset::<BlockGroupDescriptor32>(bg_offset);
-                let bgboi =
-                    Bg::init(bg_offset, Some(bg), None);
+                let bgboi = Bg::init(
+                    i as u32,
+                    bg_offset,
+                    Some(bg),
+                    None,
+                );
                 //bgboi.print();
                 self.bg.push(bgboi);
             }

@@ -16,6 +16,7 @@ pub struct Part {
 pub mod part;
 
 pub struct Bg {
+    pub id: u32,
     pub start: u64,
     pub b32: Option<BlockGroupDescriptor32>,
     pub b64: Option<BlockGroupDescriptor64>,
