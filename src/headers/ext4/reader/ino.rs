@@ -89,6 +89,7 @@ if inode.inode_uses_extents() {
 use crate::headers::constants;
 use crate::headers::ext4;
 use crate::headers::ext4::dirent;
+use crate::headers::ext4::extent;
 use crate::headers::ext4::inode::Inode;
 use crate::headers::ext4::reader::Exatt;
 use crate::headers::ext4::reader::Ino;
@@ -98,17 +99,27 @@ use crate::headers::summer;
 use colored::*;
 use std::mem::size_of;
 impl Ino {
-    pub fn populate_ext_attrs(&mut self, reader: &mut OnDisk, s: &Superblock, block0: u64) {
+    pub fn populate_ext_attrs(
+        &mut self,
+        reader: &mut OnDisk,
+        s: &Superblock,
+        block0: u64,
+    ) {
         if self.inode.get_ext_attrs_addr() != 0 {
             let extoffset = get_offset_from_block_number(
                 block0,
                 self.inode.get_ext_attrs_addr() as u64,
                 s.block_size_bytes(),
             );
-            type HdrType = ext4::extattrs::ExtendedAttrBlock;
-            let extadd = reader.read_header_from_offset::<HdrType>(extoffset);
+            type HdrType =
+                ext4::extattrs::ExtendedAttrBlock;
+            let extadd = reader
+                .read_header_from_offset::<HdrType>(
+                    extoffset,
+                );
             //println!("EXTATTR: {:#X?}", extadd);
-            //println!("size of header: 0x{:x?}", size_of::<HdrType>());
+            //println!("size of header: 0x{:x?}",
+            // size_of::<HdrType>());
             let size_of_hdr = size_of::<HdrType>() as u64;
             let mut entry_offset = 0;
             let mut exat = Exatt {
@@ -118,14 +129,19 @@ impl Ino {
             loop {
                 let extblockbytes = reader.read_bytes_from_file(
                     extoffset + entry_offset + size_of_hdr,
-                    0xff + ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME,
+                    0xff + 
+                    ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME,
                 );
                 //println!("{:X?}", extblockbytes);
-                let extblock = ext4::extattrs::get_extended_attr_entry(&extblockbytes);
+                let extblock =
+                    ext4::extattrs::get_extended_attr_entry(
+                        &extblockbytes,
+                    );
                 if !extblock.is_empty() {
                     //println!("{:#X?}", extblock);
                     entry_offset +=
-                        ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME + extblock.name_len as u64;
+                        ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME + 
+                        extblock.name_len as u64;
                     exat.attrs.push(extblock);
                 } else {
                     break;
@@ -135,7 +151,12 @@ impl Ino {
         }
     }
 
-    pub fn populate_extents(&mut self, reader: &mut OnDisk, s: &Superblock, block0: u64) {
+    pub fn populate_extents(
+        &mut self,
+        reader: &mut OnDisk,
+        s: &Superblock,
+        block0: u64,
+    ) {
         let inode = self.inode;
         inode.print_fields();
 
@@ -147,45 +168,76 @@ impl Ino {
         self.extent = Some(extent);
     }
 
-    pub fn validate_checksum(&mut self, reader: &mut OnDisk, s: &Superblock, block0: u64) -> bool {
+    pub fn validate_checksum(
+        &mut self,
+        reader: &mut OnDisk,
+        s: &Superblock,
+        block0: u64,
+    ) -> bool {
         if !s.metadata_csum() {
-            println!("METADATA_CSUM not set, skipping inode csum validation");
+            println!(
+                "METADATA_CSUM not set, skipping inode \
+                 csum validation"
+            );
             return true;
         }
-        if self.seed == 0 || !s.has_feature_checksum_seed() {
+        if self.seed == 0 || !s.has_feature_checksum_seed()
+        {
             let uuid = s.uuid.clone();
             let inonum = u32::to_le_bytes(self.id);
-            let inogen = u32::to_le_bytes(self.inode.generation);
+            let inogen =
+                u32::to_le_bytes(self.inode.generation);
             self.seed = summer::crc32c(!0, uuid.to_vec());
-            self.seed = summer::crc32c(self.seed, inonum.to_vec());
-            self.seed = summer::crc32c(self.seed, inogen.to_vec());
+            self.seed =
+                summer::crc32c(self.seed, inonum.to_vec());
+            self.seed =
+                summer::crc32c(self.seed, inogen.to_vec());
         }
         let mut csum = self.seed;
         let mut inode = self.inode.clone();
         inode.checksum_hi = 0;
         inode.checksum_lo = 0;
         let inode_size = s.inode_size;
-        let inode_des = bincode::serialize::<Inode>(&inode).unwrap();
-        let old_inode_size = constants::EXT4_INODE_CHECKSUM_HI_OFFSET as usize;
-        let mut inode_bytes = reader.read_bytes_from_file(self.start, s.inode_size as u64);
+        let inode_des =
+            bincode::serialize::<Inode>(&inode).unwrap();
+        let old_inode_size =
+            constants::EXT4_INODE_CHECKSUM_HI_OFFSET
+                as usize;
+        let mut inode_bytes = reader.read_bytes_from_file(
+            self.start,
+            s.inode_size as u64,
+        );
         for i in 0..2 {
-            inode_bytes[constants::EXT4_INODE_CHECKSUM_LO_OFFSET as usize + i] = 0;
-            if inode_size > constants::EXT4_INODE_CHECKSUM_HI_OFFSET + 2 {
+            inode_bytes
+                [constants::EXT4_INODE_CHECKSUM_LO_OFFSET
+                    as usize
+                    + i] = 0;
+            if inode_size
+                > constants::EXT4_INODE_CHECKSUM_HI_OFFSET
+                    + 2
+            {
                 inode_bytes[constants::EXT4_INODE_CHECKSUM_HI_OFFSET as usize + i] = 0;
             }
         }
-        assert_eq!(inode_des[..s.inode_size as usize], inode_bytes);
-        let mut byte_content = &inode_bytes[..s.inode_size as usize];
+        assert_eq!(
+            inode_des[..s.inode_size as usize],
+            inode_bytes
+        );
+        let mut byte_content =
+            &inode_bytes[..s.inode_size as usize];
         csum = summer::crc32c(csum, byte_content.to_vec());
         let mut in_inode = self.inode.checksum();
-        if s.inode_size == constants::EXT4_GOOD_OLD_INODE_SIZE
-            || s.inode_size <= constants::EXT4_INODE_CHECKSUM_HI_OFFSET
+        if s.inode_size
+            == constants::EXT4_GOOD_OLD_INODE_SIZE
+            || s.inode_size
+                <= constants::EXT4_INODE_CHECKSUM_HI_OFFSET
         {
             csum &= 0xFFFF;
             in_inode &= 0xFFFF;
         }
         println!(
-            "Validation checksum for inode {:X}: expect: {:X} found:{:X}: match?: {}",
+            "Validation checksum for inode {:X}: expect: \
+             {:X} found:{:X}: match?: {}",
             self.id,
             in_inode,
             csum,
@@ -194,10 +246,14 @@ impl Ino {
         in_inode == csum
     }
 
-    pub fn get_file_content(&self, reader: &mut OnDisk, s: &Superblock, block0: u64) -> Vec<u8> {
+    pub fn get_file_content(
+        &self,
+        reader: &mut OnDisk,
+        s: &Superblock,
+        block0: u64,
+    ) -> Vec<u8> {
         if !self.inode.inode_uses_extents() {
             return vec![];
-            //panic!("This inode doesn't use extents, this method shouldn't have been called")
         }
         let mut tree = self.extent.clone().unwrap();
         tree.walk(
@@ -207,10 +263,80 @@ impl Ino {
             self.inode.get_file_size() as usize,
         )
     }
+
+    pub fn get_directory_entries(
+        &mut self,
+        reader: &mut OnDisk,
+        s: &Superblock,
+        block0: u64,
+    ) {
+        if !self.inode.directory(){
+            return;
+        }
+        let inode = self.inode.clone();
+        let mut extents: extent::ExtentTree;
+        let mut dirs = vec![];
+        match &self.extent {
+            Some(tree) => {
+                extents = tree.clone();
+            }
+            None => {
+                return;
+            }
+        }
+        let bs = s.block_size_bytes();
+        let data = extents.walk(
+            reader,
+            block0,
+            bs,
+            self.inode.get_file_size() as usize,
+        );
+
+        if inode.uses_hash_tree_directories() {
+            println!(
+                "{}",
+                "Hash tree directories not implemented. \
+                 Probably going to miss reading some \
+                 directories here 😢"
+            );
+        } else {
+            let mut table_offset: usize = 0;
+            loop { //this is wrong and needs to be more granular.
+                // dirents can be any size up to 263
+                // and they can be packed all the way to the end
+                // pretty sure there isn't more than 1 block 
+                // of them at a time but not sure if there can
+                // be an entire extent tree of blocks of them?
+                // either way need to peek header to read len first
+                let bytes =
+                    &data[
+                        table_offset..table_offset + 
+                        constants::EXT4_INODE_DIRENT_MAX_LEN];
+                let dirent =
+                    dirent::get_dir_ent(&bytes[..]);
+                println!("dirent: {:x?}", dirent);
+                println!(
+                    "file_type: {}",
+                    dirent.filetype_to_str()
+                );
+                
+                let record_size = dirent.record_size();
+                table_offset += record_size as usize;
+                let last =
+                    dirent.is_last_dirent(bs, table_offset);
+                dirs.push(dirent);
+              
+                if last {
+                    break;
+                }
+            }
+            self.dirs = Some(dirs);
+        }
+    }
+
     /*
     let read_block = extent.leaf.get_block();
         let block_size = s.block_size_bytes();
-        let offset = get_offset_from_block_number(block0, read_block, block_size);
         let mut table_offset = 0;
 
         // skip dealing with the journal for now

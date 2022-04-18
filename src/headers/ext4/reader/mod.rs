@@ -29,6 +29,7 @@ pub struct Ino {
     pub inode: Inode,
     pub attr: Option<Exatt>,
     pub extent: Option<ExtentTree>,
+    pub dirs: Option<Vec<dirent::DirEnt>>,
     pub seed: u32,
     // can also have a hash tree
 }

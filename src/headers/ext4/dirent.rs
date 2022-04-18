@@ -9,6 +9,7 @@ pub struct DirEnt {
     pub namelen: u8,  // 	Length of the file name.
     pub filetype: u8, // 	File type code, one of:
     pub filename: String,
+    pub csum: Option<u32>,
 }
 
 pub fn get_dir_ent(bytes: &[u8]) -> DirEnt {
@@ -17,17 +18,34 @@ pub fn get_dir_ent(bytes: &[u8]) -> DirEnt {
     let inode_arr: [u8; 4] = [bytes[0], bytes[1], bytes[2], bytes[3]];
     let inode_u = u32::from_le_bytes(inode_arr);
     //println!("namelen: {:x}", bytes[6]);
-    let filename = String::from_utf8(bytes[8..8 + bytes[6] as usize].to_vec()).unwrap();
+    let filename: String;
+    let mut csum = None;
+    if bytes[7] == file_type::FAKE_TAIL_ENTRY_CHECKSUM {
+        filename = String::default();
+        let csumbytes = [bytes[8],bytes[9],bytes[10],bytes[11]];
+        csum = Some(u32::from_le_bytes(csumbytes));
+        
+    }else {
+        filename = String::from_utf8(bytes[8..8 + bytes[6] as usize].to_vec()).unwrap();
+    }
     DirEnt {
         inode: inode_u,
         rec_len: rec_len_u,
         namelen: bytes[6],
         filetype: bytes[7],
         filename: filename,
+        csum: csum,
+
     }
 }
 
 impl DirEnt {
+    pub fn is_last_dirent(&self, bs:u64,table_offset:usize)-> bool {
+        self.inode == 0 //signified last entry
+        || self.rec_len as u64 + table_offset as u64 >= bs 
+        || table_offset as u64 == bs
+        || self.filetype == file_type::FAKE_TAIL_ENTRY_CHECKSUM
+    }
     pub fn record_size(&self) -> u64 {
         if self.rec_len != 0 {
             return self.rec_len as u64;
