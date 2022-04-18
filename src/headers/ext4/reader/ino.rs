@@ -96,6 +96,7 @@ use crate::headers::ext4::reader::Ino;
 use crate::headers::ext4::superblock::Superblock;
 use crate::headers::reader::*;
 use crate::headers::summer;
+use super::hashdir;
 use std::mem::size_of;
 
 impl Ino {
@@ -305,12 +306,13 @@ impl Ino {
         println!("Data from extent was length: {}", data.len());
 
         if inode.uses_hash_tree_directories() {
+            let root = read_header_from_bytes::<hashdir::Root>(&data);
+            
             println!(
-                "{}",
-                "Hash tree directories not implemented. \
-                 Probably going to miss reading some \
-                 directories here 😢"
+                "{:X?}",
+               root
             );
+            std::process::exit(0);
         } else {
             loop {
                 // based on docs I'm pretty sure there isn't more than 1 block  of them at a time but not sure if there can be an entire extent tree of blocks of them? either way need to peek header to read len first

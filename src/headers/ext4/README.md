@@ -9,6 +9,8 @@ reading superblock, reading basic block groups (bg), inodes, directory entries, 
 what sort of works:
 checksums (checks some of them), magic fields (checks some of them)
 
+in progress:
+reading bg hash trees
 
 
 what doesn't work for sure
@@ -18,9 +20,10 @@ enciphered anything
 big attrs
 huge inodes
 reading stuff in 'extrasize' after inode
-reading bg hash trees
 reading extended attrs values
 reading the journal
 inline data in inodes
 META-BGs
+
+writing
 
