@@ -175,7 +175,6 @@ impl Ino {
             }
         }
         assert_eq!(inode_des[..s.inode_size as usize], inode_bytes);
-        println!("{:x?}", inode_bytes);
         let mut byte_content = &inode_bytes[..s.inode_size as usize];
         csum = summer::crc32c(csum, byte_content.to_vec());
         let mut in_inode = self.inode.checksum();
@@ -186,7 +185,7 @@ impl Ino {
             in_inode &= 0xFFFF;
         }
         println!(
-            "Validation checksum for inode {:X}: {:X} == {:X}: {}",
+            "Validation checksum for inode {:X}: expect: {:X} found:{:X}: match?: {}",
             self.id,
             in_inode,
             csum,

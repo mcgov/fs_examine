@@ -35,13 +35,11 @@ fn main() {
 		match part.p_type {
 			disk::PartitionType::Ext4 => {
 				let ext4part = part.clone();
-				let mut ext4_reader = d.make_ext4_reader(ext4part);
+				let mut ext4_reader = d.make_ext4_block_reader(ext4part);
 				//if !ext4_reader.s.uses_64bit() {
 				//continue;
 				//}
-				ext4_reader.populate_block_groups();
-				ext4_reader.validate_block_groups();
-				ext4_reader.populate_inodes();
+				ext4_reader.populate_blocks();
 			}
 			disk::PartitionType::Unused => { /* */ }
 			_ => {

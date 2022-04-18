@@ -56,6 +56,10 @@ impl Part {
     pub fn populate_inodes(&mut self) {
         for i in 0..self.bg.len() {
             self.bg[i].populate_inodes(&mut self.reader, &self.s, self.start);
+            let count = self.bg[i].ino.len();
+            if count != 0 {
+                println!("Found {} inodes in bg:{} ", count, i + 1);
+            }
         }
     }
 

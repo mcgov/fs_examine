@@ -38,3 +38,19 @@ pub struct Exatt {
     blk: ExtendedAttrBlock,
     attrs: Vec<ExtendedAttrEntry>,
 }
+
+pub struct PartReader {
+    pub reader: OnDisk,
+    pub first: Part,
+    pub blocks: std::collections::HashMap<u64, Part>,
+    pub fs_start: u64,
+    pub fs_size: u64,
+}
+
+impl Part {
+    pub fn populate_blocks(&mut self) {
+        self.populate_block_groups();
+        self.validate_block_groups();
+        self.populate_inodes();
+    }
+}

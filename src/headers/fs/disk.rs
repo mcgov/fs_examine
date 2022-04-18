@@ -171,7 +171,7 @@ impl Disk {
         return self.partitions.get(ptid).unwrap().clone();
     }
 
-    pub fn make_ext4_reader(&mut self, p: Partition) -> ext4::reader::Part {
+    pub fn make_ext4_block_reader(&mut self, p: Partition) -> ext4::reader::Part {
         assert!(matches!(p.p_type, PartitionType::Ext4));
         let sb = self
             .reader
@@ -180,8 +180,8 @@ impl Disk {
             );
         ext4::reader::Part::init(reader::new(&self.reader.file.clone()), sb, p.p_offset)
     }
-    pub fn make_ext4_reader_index(&mut self, ptid: usize) -> ext4::reader::Part {
+    pub fn make_ext4_block_reader_by_index(&mut self, ptid: usize) -> ext4::reader::Part {
         let part = self.get_partition(ptid);
-        self.make_ext4_reader(part)
+        self.make_ext4_block_reader(part)
     }
 }
