@@ -4,29 +4,40 @@ use colored::*;
 //pub $3 : u$2, //$4
 #[derive(Debug)]
 pub struct DirEnt {
-    pub inode: u32,   // 	Number of the inode that this directory entry points to.
+    pub inode: u32, /* 	Number of the inode that this
+                     * directory entry points to. */
     pub rec_len: u16, // 	Length of this directory entry.
     pub namelen: u8,  // 	Length of the file name.
     pub filetype: u8, // 	File type code, one of:
     pub filename: String,
     pub csum: Option<u32>,
 }
-
+pub fn peek_record_len(bytes: &[u8]) -> (u32, u16) {
+    let inode_arr: [u8; 4] =
+        [bytes[0], bytes[1], bytes[2], bytes[3]];
+    let inode_u = u32::from_le_bytes(inode_arr);
+    let dir: [u8; 2] = [bytes[4], bytes[5]];
+    (inode_u, u16::from_le_bytes(dir))
+}
 pub fn get_dir_ent(bytes: &[u8]) -> DirEnt {
     let dir: [u8; 2] = [bytes[4], bytes[5]];
     let rec_len_u = u16::from_le_bytes(dir);
-    let inode_arr: [u8; 4] = [bytes[0], bytes[1], bytes[2], bytes[3]];
+    let inode_arr: [u8; 4] =
+        [bytes[0], bytes[1], bytes[2], bytes[3]];
     let inode_u = u32::from_le_bytes(inode_arr);
     //println!("namelen: {:x}", bytes[6]);
     let filename: String;
     let mut csum = None;
     if bytes[7] == file_type::FAKE_TAIL_ENTRY_CHECKSUM {
         filename = String::default();
-        let csumbytes = [bytes[8],bytes[9],bytes[10],bytes[11]];
+        let csumbytes =
+            [bytes[8], bytes[9], bytes[10], bytes[11]];
         csum = Some(u32::from_le_bytes(csumbytes));
-        
-    }else {
-        filename = String::from_utf8(bytes[8..8 + bytes[6] as usize].to_vec()).unwrap();
+    } else {
+        filename = String::from_utf8(
+            bytes[8..8 + bytes[6] as usize].to_vec(),
+        )
+        .unwrap();
     }
     DirEnt {
         inode: inode_u,
@@ -35,16 +46,13 @@ pub fn get_dir_ent(bytes: &[u8]) -> DirEnt {
         filetype: bytes[7],
         filename: filename,
         csum: csum,
-
     }
 }
 
 impl DirEnt {
-    pub fn is_last_dirent(&self, bs:u64,table_offset:usize)-> bool {
+    pub fn is_last_dirent(&self) -> bool {
         self.inode == 0 //signified last entry
-        || self.rec_len as u64 + table_offset as u64 >= bs 
-        || table_offset as u64 == bs
-        || self.filetype == file_type::FAKE_TAIL_ENTRY_CHECKSUM
+        && self.namelen == 0
     }
     pub fn record_size(&self) -> u64 {
         if self.rec_len != 0 {
@@ -52,11 +60,18 @@ impl DirEnt {
         }
         8
     }
+    pub fn is_checksum_entry(&self) -> bool {
+        self.is_last_dirent()
+            && self.filetype
+                == file_type::FAKE_TAIL_ENTRY_CHECKSUM
+    }
     pub fn filetype_to_str(&self) -> String {
         let ft: &str;
         match self.filetype {
             file_type::UNKNOWN => {
-                return stringify!(file_type::UNKNOWN).purple().to_string();
+                return stringify!(file_type::UNKNOWN)
+                    .purple()
+                    .to_string();
             }
             file_type::REGULAR_FILE => {
                 ft = stringify!(file_type::REGULAR_FILE);
@@ -80,10 +95,16 @@ impl DirEnt {
                 ft = stringify!(file_type::SYMLINK);
             }
             file_type::FAKE_TAIL_ENTRY_CHECKSUM => {
-                ft = stringify!(file_type::FAKE_TAIL_ENTRY_CHECKSUM);
+                ft = stringify!(
+                    file_type::FAKE_TAIL_ENTRY_CHECKSUM
+                );
             }
             x => {
-                panic!("Error, unknown filetype for Dirent: {:X}", x);
+                panic!(
+                    "Error, unknown filetype for Dirent: \
+                     {:X}",
+                    x
+                );
             }
         }
 

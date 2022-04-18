@@ -115,7 +115,7 @@ impl Bg {
                 if cnt.len() > 0 && cnt.len() < 0x1000 {
                     println!("Inode number: {}", ino.id);
                     if cnt.len() > 0x100 {
-                        println!("{:X?}", &cnt[..100]);
+                        //println!("{:X?}", &cnt[..100]);
                     }
                     let cont =
                         String::from_utf8_lossy(&cnt);
@@ -126,8 +126,9 @@ impl Bg {
                     );
                 }
             }
+            ino.set_inode_checksum_seed(s);
+            ino.validate_checksum(reader, s);
             ino.get_directory_entries(reader, s, start);
-            ino.validate_checksum(reader, s, start);
 
             self.ino.push(ino);
         }

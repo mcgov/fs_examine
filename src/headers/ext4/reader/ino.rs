@@ -96,8 +96,8 @@ use crate::headers::ext4::reader::Ino;
 use crate::headers::ext4::superblock::Superblock;
 use crate::headers::reader::*;
 use crate::headers::summer;
-use colored::*;
 use std::mem::size_of;
+
 impl Ino {
     pub fn populate_ext_attrs(
         &mut self,
@@ -168,19 +168,7 @@ impl Ino {
         self.extent = Some(extent);
     }
 
-    pub fn validate_checksum(
-        &mut self,
-        reader: &mut OnDisk,
-        s: &Superblock,
-        block0: u64,
-    ) -> bool {
-        if !s.metadata_csum() {
-            println!(
-                "METADATA_CSUM not set, skipping inode \
-                 csum validation"
-            );
-            return true;
-        }
+    pub fn set_inode_checksum_seed(&mut self, s: &Superblock){
         if self.seed == 0 || !s.has_feature_checksum_seed()
         {
             let uuid = s.uuid.clone();
@@ -193,6 +181,24 @@ impl Ino {
             self.seed =
                 summer::crc32c(self.seed, inogen.to_vec());
         }
+        if s.has_feature_checksum_seed(){
+            self.seed = s.checksum_seed;
+        }
+    }
+
+    pub fn validate_checksum(
+        &mut self,
+        reader: &mut OnDisk,
+        s: &Superblock,
+    ) -> bool {
+        if !s.metadata_csum() {
+            println!(
+                "METADATA_CSUM not set, skipping inode \
+                 csum validation"
+            );
+            return true;
+        }
+        
         let mut csum = self.seed;
         let mut inode = self.inode.clone();
         inode.checksum_hi = 0;
@@ -200,9 +206,7 @@ impl Ino {
         let inode_size = s.inode_size;
         let inode_des =
             bincode::serialize::<Inode>(&inode).unwrap();
-        let old_inode_size =
-            constants::EXT4_INODE_CHECKSUM_HI_OFFSET
-                as usize;
+        
         let mut inode_bytes = reader.read_bytes_from_file(
             self.start,
             s.inode_size as u64,
@@ -223,7 +227,7 @@ impl Ino {
             inode_des[..s.inode_size as usize],
             inode_bytes
         );
-        let mut byte_content =
+        let byte_content =
             &inode_bytes[..s.inode_size as usize];
         csum = summer::crc32c(csum, byte_content.to_vec());
         let mut in_inode = self.inode.checksum();
@@ -264,6 +268,12 @@ impl Ino {
         )
     }
 
+    pub fn validate_dirent_checksum(&self, checksum:u32, data_block:&[u8] ) -> bool {
+        
+        let crc = summer::crc32c(self.seed,data_block.to_vec());
+        println!("Dirent checksum check (seed:{:X}): {:X} == {:X} ? : {}",self.seed, crc,checksum,print_bool(crc==checksum));
+        crc == checksum
+    }
     pub fn get_directory_entries(
         &mut self,
         reader: &mut OnDisk,
@@ -291,6 +301,8 @@ impl Ino {
             bs,
             self.inode.get_file_size() as usize,
         );
+        let mut slice = &data[..];
+        println!("Data from extent was length: {}", data.len());
 
         if inode.uses_hash_tree_directories() {
             println!(
@@ -300,35 +312,37 @@ impl Ino {
                  directories here 😢"
             );
         } else {
-            let mut table_offset: usize = 0;
-            loop { //this is wrong and needs to be more granular.
-                // dirents can be any size up to 263
-                // and they can be packed all the way to the end
-                // pretty sure there isn't more than 1 block 
-                // of them at a time but not sure if there can
-                // be an entire extent tree of blocks of them?
-                // either way need to peek header to read len first
-                let bytes =
-                    &data[
-                        table_offset..table_offset + 
-                        constants::EXT4_INODE_DIRENT_MAX_LEN];
+            loop {
+                // based on docs I'm pretty sure there isn't more than 1 block  of them at a time but not sure if there can be an entire extent tree of blocks of them? either way need to peek header to read len first
+                let len_left = data.len() - slice.len();
+                let (ino,rec_len) = dirent::peek_record_len(slice);
+                if ino == 0 {
+                    println!("found last entry at offset: {}",len_left);
+                }
+                let cur_slice = &slice[..rec_len as usize];
                 let dirent =
-                    dirent::get_dir_ent(&bytes[..]);
+                    dirent::get_dir_ent(&cur_slice);
                 println!("dirent: {:x?}", dirent);
                 println!(
                     "file_type: {}",
                     dirent.filetype_to_str()
                 );
-                
-                let record_size = dirent.record_size();
-                table_offset += record_size as usize;
-                let last =
-                    dirent.is_last_dirent(bs, table_offset);
-                dirs.push(dirent);
-              
-                if last {
+                let last = dirent.is_last_dirent();
+                if dirent.is_checksum_entry(){
+                    let csum = dirent.csum.unwrap();
+                    
+                    println!("DATA_LEN: {} LEN LEFT: {}",data.len(), len_left);
+                    self.validate_dirent_checksum(csum, &data[..len_left]);
+                }
+                if !last || dirent.is_checksum_entry(){
+                    dirs.push(dirent);
+                }
+
+                slice = &slice[rec_len as usize..];
+                if last || slice.len() == 0 {
                     break;
                 }
+               
             }
             self.dirs = Some(dirs);
         }
