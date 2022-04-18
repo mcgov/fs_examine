@@ -408,6 +408,12 @@ impl Superblock {
             compat_bitflags::COMPAT_HAS_JOURNAL,
         )
     }
+    pub fn uses_indexed_dirs(&self) -> bool {
+        bitfield_fetch::<u32>(
+            self.feature_compat,
+            compat_bitflags::COMPAT_DIR_INDEX,
+        )
+    }
     pub fn metadata_csum(&self) -> bool {
         bitfield_fetch(
             self.feature_ro_compat,
@@ -582,7 +588,7 @@ impl Superblock {
                 println!(
                     "Hashed directories??: {}",
                     print_bool(bitfield_fetch::<u32>(
-                        self.feature_ro_compat,
+                        self.feature_compat,
                         compat_bitflags::COMPAT_DIR_INDEX
                     ))
                 );

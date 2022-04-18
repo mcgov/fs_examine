@@ -1,3 +1,4 @@
+use colored::*;
 use serde::Deserialize;
 #[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]
@@ -34,6 +35,46 @@ pub struct Root {
                  * 8-byte struct dx_entry as fits in the
                  * rest of the data block. */
 }
+macro_rules! validate_field {
+    ($field:expr,$value:expr) => {
+        if $field != $value {
+            println!(
+                "Error: {:#?} != {:#?}",
+                $field, $value
+            );
+            return false;
+        }
+    };
+}
+impl Root {
+    pub fn validate(&self, _bs: u64) -> bool {
+        let drec = self.dot_rec_len;
+        validate_field!(drec, 12);
+        let name_len = self.dot_name_len;
+        validate_field!(name_len, 1);
+        validate_field!(self.dot_file_type, 2);
+        validate_field!(self.dot_name, [b'.', 0, 0, 0]);
+        let ddrec = self.dotdot_rec_len;
+        validate_field!(ddrec, 12);
+        validate_field!(self.dotdot_name_len, 2);
+        validate_field!(self.dotdot_file_type, 2);
+        validate_field!(
+            self.dotdot_name,
+            [b'.', b'.', 0, 0]
+        );
+        if !self.root_info.validate() {
+            println!("root info didn't validate!");
+            return false;
+        }
+
+        println!(
+            "{}",
+            "he'll yea brother root valleydatored".green()
+        );
+        true
+    }
+}
+
 #[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct RootInfo {
@@ -56,6 +97,11 @@ pub mod hash_versions {
     const UHALF_MD4: u8 = 4;
     const UTEA: u8 = 5;
     const SIPHASH: u8 = 6;
+}
+impl RootInfo {
+    pub fn validate(&self) -> bool {
+        true
+    }
 }
 #[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]

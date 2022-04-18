@@ -11,3 +11,4 @@ Cargo.lock
 
 #ignore inflated test disk image
 tests/multipart.bin
+tests/multi-hash*

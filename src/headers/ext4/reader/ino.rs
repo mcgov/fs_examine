@@ -86,6 +86,7 @@ if inode.inode_uses_extents() {
 }
 
 */
+use super::hashdir;
 use crate::headers::constants;
 use crate::headers::ext4;
 use crate::headers::ext4::dirent;
@@ -96,7 +97,6 @@ use crate::headers::ext4::reader::Ino;
 use crate::headers::ext4::superblock::Superblock;
 use crate::headers::reader::*;
 use crate::headers::summer;
-use super::hashdir;
 use std::mem::size_of;
 
 impl Ino {
@@ -130,7 +130,7 @@ impl Ino {
             loop {
                 let extblockbytes = reader.read_bytes_from_file(
                     extoffset + entry_offset + size_of_hdr,
-                    0xff + 
+                    0xff +
                     ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME,
                 );
                 //println!("{:X?}", extblockbytes);
@@ -141,7 +141,7 @@ impl Ino {
                 if !extblock.is_empty() {
                     //println!("{:#X?}", extblock);
                     entry_offset +=
-                        ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME + 
+                        ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME +
                         extblock.name_len as u64;
                     exat.attrs.push(extblock);
                 } else {
@@ -169,7 +169,10 @@ impl Ino {
         self.extent = Some(extent);
     }
 
-    pub fn set_inode_checksum_seed(&mut self, s: &Superblock){
+    pub fn set_inode_checksum_seed(
+        &mut self,
+        s: &Superblock,
+    ) {
         if self.seed == 0 || !s.has_feature_checksum_seed()
         {
             let uuid = s.uuid.clone();
@@ -182,7 +185,7 @@ impl Ino {
             self.seed =
                 summer::crc32c(self.seed, inogen.to_vec());
         }
-        if s.has_feature_checksum_seed(){
+        if s.has_feature_checksum_seed() {
             self.seed = s.checksum_seed;
         }
     }
@@ -199,7 +202,7 @@ impl Ino {
             );
             return true;
         }
-        
+
         let mut csum = self.seed;
         let mut inode = self.inode.clone();
         inode.checksum_hi = 0;
@@ -207,7 +210,7 @@ impl Ino {
         let inode_size = s.inode_size;
         let inode_des =
             bincode::serialize::<Inode>(&inode).unwrap();
-        
+
         let mut inode_bytes = reader.read_bytes_from_file(
             self.start,
             s.inode_size as u64,
@@ -269,9 +272,13 @@ impl Ino {
         )
     }
 
-    pub fn validate_dirent_checksum(&self, checksum:u32, data_block:&[u8] ) -> bool {
-        
-        let crc = summer::crc32c(self.seed,data_block.to_vec());
+    pub fn validate_dirent_checksum(
+        &self,
+        checksum: u32,
+        data_block: &[u8],
+    ) -> bool {
+        let crc =
+            summer::crc32c(self.seed, data_block.to_vec());
         println!("Dirent checksum check (seed:{:X}): {:X} == {:X} ? : {}",self.seed, crc,checksum,print_bool(crc==checksum));
         crc == checksum
     }
@@ -281,7 +288,7 @@ impl Ino {
         s: &Superblock,
         block0: u64,
     ) {
-        if !self.inode.directory(){
+        if !self.inode.directory() {
             return;
         }
         let inode = self.inode.clone();
@@ -303,23 +310,30 @@ impl Ino {
             self.inode.get_file_size() as usize,
         );
         let mut slice = &data[..];
-        println!("Data from extent was length: {}", data.len());
+        println!(
+            "Data from extent was length: {}",
+            data.len()
+        );
 
-        if inode.uses_hash_tree_directories() {
-            let root = read_header_from_bytes::<hashdir::Root>(&data);
-            
-            println!(
-                "{:X?}",
-               root
-            );
+        if s.uses_indexed_dirs() {
+            let root = read_header_from_bytes::<
+                hashdir::Root,
+            >(&data);
+
+            println!("{:X?}", root);
+            root.validate(bs);
             std::process::exit(0);
         } else {
             loop {
                 // based on docs I'm pretty sure there isn't more than 1 block  of them at a time but not sure if there can be an entire extent tree of blocks of them? either way need to peek header to read len first
                 let len_left = data.len() - slice.len();
-                let (ino,rec_len) = dirent::peek_record_len(slice);
+                let (ino, rec_len) =
+                    dirent::peek_record_len(slice);
                 if ino == 0 {
-                    println!("found last entry at offset: {}",len_left);
+                    println!(
+                        "found last entry at offset: {}",
+                        len_left
+                    );
                 }
                 let cur_slice = &slice[..rec_len as usize];
                 let dirent =
@@ -330,13 +344,20 @@ impl Ino {
                     dirent.filetype_to_str()
                 );
                 let last = dirent.is_last_dirent();
-                if dirent.is_checksum_entry(){
+                if dirent.is_checksum_entry() {
                     let csum = dirent.csum.unwrap();
-                    
-                    println!("DATA_LEN: {} LEN LEFT: {}",data.len(), len_left);
-                    self.validate_dirent_checksum(csum, &data[..len_left]);
+
+                    println!(
+                        "DATA_LEN: {} LEN LEFT: {}",
+                        data.len(),
+                        len_left
+                    );
+                    self.validate_dirent_checksum(
+                        csum,
+                        &data[..len_left],
+                    );
                 }
-                if !last || dirent.is_checksum_entry(){
+                if !last || dirent.is_checksum_entry() {
                     dirs.push(dirent);
                 }
 
@@ -344,7 +365,6 @@ impl Ino {
                 if last || slice.len() == 0 {
                     break;
                 }
-               
             }
             self.dirs = Some(dirs);
         }
