@@ -1,5 +1,5 @@
 use serde::Deserialize;
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct Root {
     dot_inode: u32, // 	inode number of this directory.
@@ -34,7 +34,7 @@ pub struct Root {
                  * 8-byte struct dx_entry as fits in the
                  * rest of the data block. */
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct RootInfo {
     reserved_zero: u32, // 	Zero.
@@ -57,7 +57,7 @@ pub mod hash_versions {
     const UTEA: u8 = 5;
     const SIPHASH: u8 = 6;
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct Node {
     fake_inode: u32, /* 	Zero, to make it look like this
@@ -77,7 +77,7 @@ pub struct Node {
                  * header itself. */
     block: u32, /* The block number (within the directory file) that goes with the lowest hash value of this block. This value is stored in the parent block. */
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct Entry {
     hash: u32, // 	Hash code.
@@ -85,7 +85,7 @@ pub struct Entry {
                 * file, not filesystem blocks) of the
                 * next node in the htree. */
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct Tail {
     reserved: u32,
