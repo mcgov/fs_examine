@@ -10,7 +10,7 @@ use xfat::headers::reader;
 ██╔═══╝ ██║   ██║██╔══██╗   ██║
 ██║     ╚██████╔╝██║  ██║   ██║
 ╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝   Partition Unified ReadTer
-PURT Urs Rot a Tarpition Peedurt
+PURT Urs Rot a Tarpition preedurt
 */
 
 fn main() {
