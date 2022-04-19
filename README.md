@@ -1,5 +1,5 @@
-# xfat
-doing stuff with disks. Poorly chosen project name.
+# purt
+doing stuff with disks.
 
 coding guidelines:
 - always push to main.
