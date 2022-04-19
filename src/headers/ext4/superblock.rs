@@ -674,7 +674,8 @@ pub mod compat_readonly {
     pub const RO_COMPAT_SPARSE_SUPER: u32 = 0x1; // 	Sparse superblocks. See the earlier discussion of
                                                  // this feature. .
     pub const RO_COMPAT_LARGE_FILE: u32 = 0x2; // 	Allow storing files larger than 2GiB .
-                                               //pub const RO_COMPAT_BTREE_DIR: u32 = 0x4; // 	Was intended for use with htree directories, but was
+                                               //pub const RO_COMPAT_BTREE_DIR: u32 = 0x4; // 	Was
+                                               // intended for use with htree directories, but was
                                                // not needed. Not used in kernel or e2fsprogs .
     pub const RO_COMPAT_HUGE_FILE: u32 = 0x8; // 	This filesystem has files whose space usage is stored
                                               // in i_blocks in units of filesystem blocks, not

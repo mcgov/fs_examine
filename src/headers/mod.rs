@@ -11,4 +11,3 @@ pub mod bitfields;
 mod constants;
 pub mod fs;
 pub mod summer;
-use crate::define_flags;

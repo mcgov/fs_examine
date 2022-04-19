@@ -112,12 +112,9 @@ impl Ino {
                 self.inode.get_ext_attrs_addr() as u64,
                 s.block_size_bytes(),
             );
-            type HdrType =
-                ext4::extattrs::ExtendedAttrBlock;
-            let extadd = reader
-                .read_header_from_offset::<HdrType>(
-                    extoffset,
-                );
+            type HdrType = ext4::extattrs::ExtendedAttrBlock;
+            let extadd =
+                reader.read_header_from_offset::<HdrType>(extoffset);
             //println!("EXTATTR: {:#X?}", extadd);
             //println!("size of header: 0x{:x?}",
             // size_of::<HdrType>());
@@ -130,8 +127,7 @@ impl Ino {
             loop {
                 let extblockbytes = reader.read_bytes_from_file(
                     extoffset + entry_offset + size_of_hdr,
-                    0xff +
-                    ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME,
+                    0xff + ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME,
                 );
                 //println!("{:X?}", extblockbytes);
                 let extblock =
@@ -141,8 +137,8 @@ impl Ino {
                 if !extblock.is_empty() {
                     //println!("{:#X?}", extblock);
                     entry_offset +=
-                        ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME +
-                        extblock.name_len as u64;
+                        ext4::extattrs::EXTATTR_ENTRY_SIZE_WO_NAME
+                            + extblock.name_len as u64;
                     exat.attrs.push(extblock);
                 } else {
                     break;
@@ -169,21 +165,14 @@ impl Ino {
         self.extent = Some(extent);
     }
 
-    pub fn set_inode_checksum_seed(
-        &mut self,
-        s: &Superblock,
-    ) {
-        if self.seed == 0 || !s.has_feature_checksum_seed()
-        {
+    pub fn set_inode_checksum_seed(&mut self, s: &Superblock) {
+        if self.seed == 0 || !s.has_feature_checksum_seed() {
             let uuid = s.uuid.clone();
             let inonum = u32::to_le_bytes(self.id);
-            let inogen =
-                u32::to_le_bytes(self.inode.generation);
+            let inogen = u32::to_le_bytes(self.inode.generation);
             self.seed = summer::crc32c(!0, uuid.to_vec());
-            self.seed =
-                summer::crc32c(self.seed, inonum.to_vec());
-            self.seed =
-                summer::crc32c(self.seed, inogen.to_vec());
+            self.seed = summer::crc32c(self.seed, inonum.to_vec());
+            self.seed = summer::crc32c(self.seed, inogen.to_vec());
         }
         if s.has_feature_checksum_seed() {
             self.seed = s.checksum_seed;
@@ -197,8 +186,8 @@ impl Ino {
     ) -> bool {
         if !s.metadata_csum() {
             println!(
-                "METADATA_CSUM not set, skipping inode \
-                 csum validation"
+                "METADATA_CSUM not set, skipping inode csum \
+                 validation"
             );
             return true;
         }
@@ -208,35 +197,27 @@ impl Ino {
         inode.checksum_hi = 0;
         inode.checksum_lo = 0;
         let inode_size = s.inode_size;
-        let inode_des =
-            bincode::serialize::<Inode>(&inode).unwrap();
+        let inode_des = bincode::serialize::<Inode>(&inode).unwrap();
 
-        let mut inode_bytes = reader.read_bytes_from_file(
-            self.start,
-            s.inode_size as u64,
-        );
+        let mut inode_bytes = reader
+            .read_bytes_from_file(self.start, s.inode_size as u64);
         for i in 0..2 {
-            inode_bytes
-                [constants::EXT4_INODE_CHECKSUM_LO_OFFSET
+            inode_bytes[constants::EXT4_INODE_CHECKSUM_LO_OFFSET
+                as usize
+                + i] = 0;
+            if inode_size
+                > constants::EXT4_INODE_CHECKSUM_HI_OFFSET + 2
+            {
+                inode_bytes[constants::EXT4_INODE_CHECKSUM_HI_OFFSET
                     as usize
                     + i] = 0;
-            if inode_size
-                > constants::EXT4_INODE_CHECKSUM_HI_OFFSET
-                    + 2
-            {
-                inode_bytes[constants::EXT4_INODE_CHECKSUM_HI_OFFSET as usize + i] = 0;
             }
         }
-        assert_eq!(
-            inode_des[..s.inode_size as usize],
-            inode_bytes
-        );
-        let byte_content =
-            &inode_bytes[..s.inode_size as usize];
+        assert_eq!(inode_des[..s.inode_size as usize], inode_bytes);
+        let byte_content = &inode_bytes[..s.inode_size as usize];
         csum = summer::crc32c(csum, byte_content.to_vec());
         let mut in_inode = self.inode.checksum();
-        if s.inode_size
-            == constants::EXT4_GOOD_OLD_INODE_SIZE
+        if s.inode_size == constants::EXT4_GOOD_OLD_INODE_SIZE
             || s.inode_size
                 <= constants::EXT4_INODE_CHECKSUM_HI_OFFSET
         {
@@ -244,8 +225,8 @@ impl Ino {
             in_inode &= 0xFFFF;
         }
         println!(
-            "Validation checksum for inode {:X}: expect: \
-             {:X} found:{:X}: match?: {}",
+            "Validation checksum for inode {:X}: expect: {:X} \
+             found:{:X}: match?: {}",
             self.id,
             in_inode,
             csum,
@@ -277,9 +258,14 @@ impl Ino {
         checksum: u32,
         data_block: &[u8],
     ) -> bool {
-        let crc =
-            summer::crc32c(self.seed, data_block.to_vec());
-        println!("Dirent checksum check (seed:{:X}): {:X} == {:X} ? : {}",self.seed, crc,checksum,print_bool(crc==checksum));
+        let crc = summer::crc32c(self.seed, data_block.to_vec());
+        println!(
+            "Dirent checksum check (seed:{:X}): {:X} == {:X} ? : {}",
+            self.seed,
+            crc,
+            checksum,
+            print_bool(crc == checksum)
+        );
         crc == checksum
     }
     pub fn get_directory_entries(
@@ -310,29 +296,31 @@ impl Ino {
             self.inode.get_file_size() as usize,
         );
         let mut slice = &data[..];
-        println!(
-            "Data from extent was length: {}",
-            data.len()
-        );
+        println!("Data from extent was length: {}", data.len());
 
         if s.uses_indexed_dirs()
             && self.inode.uses_hash_tree_directories()
         {
-            let root = read_header_from_bytes::<
-                hashdir::Root,
-            >(&data);
-            root.validate(bs);
+            let root = read_header_from_bytes::<hashdir::Root>(&data);
+            root.validate(bs as u16);
 
             println!("{:X?}", root,);
             println!("{:?}", root.hash_version());
 
+            for i in 0..root.count {
+                let entry =
+                    read_header_from_bytes::<hashdir::Entry>(&data);
+            }
+
             std::process::exit(0);
         } else {
             loop {
-                // based on docs I'm pretty sure there isn't more than 1 block  of them at a time but not sure if there can be an entire extent tree of blocks of them? either way need to peek header to read len first
+                // based on docs I'm pretty sure there isn't more than
+                // 1 block of them at a time but not sure if there
+                // can be an entire extent tree of blocks of them?
+                // either way need to peek header to read len first
                 let len_left = data.len() - slice.len();
-                let (ino, rec_len) =
-                    dirent::peek_record_len(slice);
+                let (ino, rec_len) = dirent::peek_record_len(slice);
                 if ino == 0 {
                     println!(
                         "found last entry at offset: {}",
@@ -340,13 +328,9 @@ impl Ino {
                     );
                 }
                 let cur_slice = &slice[..rec_len as usize];
-                let dirent =
-                    dirent::get_dir_ent(&cur_slice);
+                let dirent = dirent::get_dir_ent(&cur_slice);
                 println!("dirent: {:x?}", dirent);
-                println!(
-                    "file_type: {}",
-                    dirent.filetype_to_str()
-                );
+                println!("file_type: {}", dirent.filetype_to_str());
                 let last = dirent.is_last_dirent();
                 if dirent.is_checksum_entry() {
                     let csum = dirent.csum.unwrap();
