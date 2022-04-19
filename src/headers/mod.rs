@@ -7,6 +7,8 @@ pub mod printer;
 pub mod reader;
 pub mod xfs;
 extern crate serde_big_array;
+pub mod bitfields;
 mod constants;
 pub mod fs;
 pub mod summer;
+use crate::define_flags;
