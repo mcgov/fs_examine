@@ -310,6 +310,9 @@ impl Ino {
             for i in 0..root.count {
                 let entry =
                     read_header_from_bytes::<hashdir::Entry>(&data);
+                //entry.validate();
+                // ah yes, reading the btree as an array to validate
+                // it.
             }
 
             std::process::exit(0);

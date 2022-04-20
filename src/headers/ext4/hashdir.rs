@@ -102,6 +102,7 @@ pub struct RootInfo {
                           * otherwise. */
     unused_flags: u8, //
 }
+use crate::hash;
 
 impl RootInfo {
     pub fn hash_version(&self) -> hash_versions::HashVer {
@@ -109,13 +110,17 @@ impl RootInfo {
     }
 }
 pub mod hash_versions {
+    // tf whats up with these hash algorithms
     pub const SLEGACY: u8 = 0;
-    pub const SHALF_MD4: u8 = 1;
-    pub const STEA: u8 = 2;
-    pub const ULEGACY: u8 = 3;
-    pub const UHALF_MD4: u8 = 4;
+    pub const SHALF_MD4: u8 = 1; // <- 2 step collision attack
+    pub const STEA: u8 = 2; // xbox hack
+    pub const ULEGACY: u8 = 3; // I guess they're not for security
+    pub const UHALF_MD4: u8 = 4; // maybe they're fast
     pub const UTEA: u8 = 5;
-    pub const SIPHASH: u8 = 6;
+    pub const SIPHASH: u8 = 6; // maybe this one's cool
+
+    // weird code noticed in the md4 implementation:
+    // x (u32) &= 0xFFFFFFFF;
 
     #[derive(Clone, Debug)]
     pub enum HashVer {
@@ -144,7 +149,8 @@ impl RootInfo {
             self.hash_version,
             (hash_versions::SIPHASH + 1)
         );
-        validate_field!(self.reserved_zero, 0);
+        let reserved_zero = self.reserved_zero;
+        validate_field!(reserved_zero, 0);
         validate_field!(self.info_length, 8);
         validate_field_lt!(self.indirect_levels, 4);
         //NOTE: unused flags
@@ -177,7 +183,7 @@ pub struct Node {
 #[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct Entry {
-    hash: i32, // 	Hash code. //hey first signed!
+    hash: u32, // 	Hash code.
     block: u32, /* 	Block number (within the directory
                 * file, not filesystem blocks) of the
                 * next node in the htree. */
