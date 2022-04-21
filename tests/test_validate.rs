@@ -1,10 +1,10 @@
-use xfat::headers::exfat;
-use xfat::headers::ext4::superblock::Superblock;
-use xfat::headers::gpt::partitions::PartitionEntry;
-use xfat::headers::gpt::*;
-use xfat::headers::hash::Mdfour;
-use xfat::headers::mbr::*;
-use xfat::headers::reader;
+use purd::headers::exfat;
+use purd::headers::ext4::superblock::Superblock;
+use purd::headers::gpt::partitions::PartitionEntry;
+use purd::headers::gpt::*;
+use purd::headers::hash::mdfour;
+use purd::headers::mbr::*;
+use purd::headers::reader;
 
 #[test]
 fn test_md4() {
@@ -24,7 +24,7 @@ fn test_md4() {
     md4.update(&[]);
     let mut hash = md4.finalize();
     */
-    let hash = Mdfour::hash(&[]);
+    let hash = mdfour::hash(&[]);
     assert_eq!(
         [
             0x31, 0xd6, 0xcf, 0xe0, 0xd1, 0x6a, 0xe9, 0x31, 0xb7,

@@ -23,7 +23,11 @@ pub struct OnDisk {
     pub reader: BufReader<File>,
 }
 
-pub fn get_offset_from_block_number(block_0: u64, index: u64, block_size: u64) -> u64 {
+pub fn get_offset_from_block_number(
+    block_0: u64,
+    index: u64,
+    block_size: u64,
+) -> u64 {
     block_0 + index * block_size
 }
 
@@ -35,19 +39,27 @@ pub fn new(file_arg: &str) -> OnDisk {
 }
 
 impl OnDisk {
-    pub fn read_bytes_from_file(&mut self, offset: u64, size: u64) -> Vec<u8> {
+    pub fn read_bytes_from_file(
+        &mut self,
+        offset: u64,
+        size: u64,
+    ) -> Vec<u8> {
         //let output = format!("Reading from 0x{:X}", offset).yellow();
         //println!("{}", output);
-        let res = self.reader.seek(SeekFrom::Start(offset as u64)).unwrap();
+        let res =
+            self.reader.seek(SeekFrom::Start(offset as u64)).unwrap();
         if res != offset {
             panic!("Failed to seek to offset\n");
         }
-        let mut file_data: Vec<u8> = vec![0; size.try_into().unwrap()];
+        let mut file_data: Vec<u8> =
+            vec![0; size.try_into().unwrap()];
         self.reader.read_exact(&mut file_data[..]).unwrap();
         file_data
     }
 
-    pub fn read_header_from_offset<Header: Sized + DeserializeOwned>(
+    pub fn read_header_from_offset<
+        Header: Sized + DeserializeOwned,
+    >(
         &mut self,
         offset: u64,
     ) -> Header {
@@ -61,12 +73,16 @@ impl OnDisk {
     }
 }
 
-pub fn read_header_from_bytevec<Header: Sized + DeserializeOwned>(bytes: Vec<u8>) -> Header {
+pub fn read_header_from_bytevec<Header: Sized + DeserializeOwned>(
+    bytes: Vec<u8>,
+) -> Header {
     // read the bytes into the struct
     deserialize::<Header>(&bytes[..]).unwrap()
 }
 
-pub fn read_header_from_bytes<Header: Sized + DeserializeOwned>(bytes: &[u8]) -> Header {
+pub fn read_header_from_bytes<Header: Sized + DeserializeOwned>(
+    bytes: &[u8],
+) -> Header {
     deserialize::<Header>(&bytes[..]).unwrap()
 }
 
@@ -124,11 +140,14 @@ where
     Ok(data)
 }
 
-const GUID_INDEX: [u8; 16] = [3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15];
-const UUID_INDEX: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+const GUID_INDEX: [u8; 16] =
+    [3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15];
+const UUID_INDEX: [u8; 16] =
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 fn _parse_uuid(uuid: &str, indexes: [u8; 16]) -> [u8; 16] {
-    const START_INDEX: [u8; 16] = [0, 2, 4, 6, 9, 11, 14, 16, 19, 21, 24, 26, 28, 30, 32, 34];
+    const START_INDEX: [u8; 16] =
+        [0, 2, 4, 6, 9, 11, 14, 16, 19, 21, 24, 26, 28, 30, 32, 34];
     let mut out = [0u8; 16];
     for i in 0..16 {
         let hii = START_INDEX[i] + 0;
@@ -172,7 +191,10 @@ where
     Ok(Uuid::from_slice(&guid).unwrap())
 }
 
-pub fn bitfield_fetch<T: Sized + PrimInt>(target: T, bitmask: T) -> bool {
+pub fn bitfield_fetch<T: Sized + PrimInt>(
+    target: T,
+    bitmask: T,
+) -> bool {
     return (target & bitmask) == bitmask;
 }
 
@@ -201,9 +223,15 @@ pub trait HasHeaderMagic {
 
     // this should check the magic value based on the partition start
     // for FS main headers or from the header start for headers
-    fn check_magic_field(&self, ondisk: &mut OnDisk, offset: u64) -> bool {
-        let magic_bytes = ondisk
-            .read_bytes_from_file(offset + self.magic_field_offset(), self.magic_field_size());
+    fn check_magic_field(
+        &self,
+        ondisk: &mut OnDisk,
+        offset: u64,
+    ) -> bool {
+        let magic_bytes = ondisk.read_bytes_from_file(
+            offset + self.magic_field_offset(),
+            self.magic_field_size(),
+        );
 
         let found_magic: u128;
         macro_rules! upcast {

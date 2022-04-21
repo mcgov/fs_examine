@@ -1,7 +1,7 @@
+use purd::headers::fs::disk;
+use purd::headers::mbr;
+use purd::headers::reader;
 use std::env;
-use xfat::headers::fs::disk;
-use xfat::headers::mbr;
-use xfat::headers::reader;
 
 /* =============================================== #
 ██████╗ ██╗   ██╗██████╗ ████████╗
@@ -18,6 +18,7 @@ fn main() {
 
 	// start building our disk
 	let mut reader = reader::new(&file_arg);
+
 	let mut d: disk::Disk = disk::Disk {
 		mbr: reader.read_header_from_offset::<mbr::Mbr>(0),
 		reader: reader,
@@ -35,7 +36,8 @@ fn main() {
 		match part.p_type {
 			disk::PartitionType::Ext4 => {
 				let ext4part = part.clone();
-				let mut ext4_reader = d.make_ext4_block_reader(ext4part);
+				let mut ext4_reader =
+					d.make_ext4_block_reader(ext4part);
 				//if !ext4_reader.s.uses_64bit() {
 				//continue;
 				//}

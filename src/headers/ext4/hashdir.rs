@@ -106,7 +106,7 @@ use crate::headers::hash;
 
 impl RootInfo {
     pub fn hash_version(&self) -> hash_versions::HashVer {
-        hash_versions::val_to_enum[self.hash_version as usize].clone()
+        hash_versions::VAL_TO_ENUM[self.hash_version as usize].clone()
     }
 }
 pub mod hash_versions {
@@ -133,7 +133,7 @@ pub mod hash_versions {
         SipHash,
     }
 
-    pub const val_to_enum: [HashVer; 7] = [
+    pub const VAL_TO_ENUM: [HashVer; 7] = [
         HashVer::Legacy,
         HashVer::HalfMd4,
         HashVer::Tea,
