@@ -20,6 +20,7 @@ chrono = "0.4.19"
 nameof = "1.2.2"
 colored = "2"
 crc = "2.1.0"
+md4 = "0.10.1"
 
 [dependencies.iced-x86]
 version = "1.17.0"

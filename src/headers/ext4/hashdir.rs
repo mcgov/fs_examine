@@ -102,7 +102,7 @@ pub struct RootInfo {
                           * otherwise. */
     unused_flags: u8, //
 }
-use crate::hash;
+use crate::headers::hash;
 
 impl RootInfo {
     pub fn hash_version(&self) -> hash_versions::HashVer {
