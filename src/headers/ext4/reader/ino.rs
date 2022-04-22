@@ -346,13 +346,19 @@ impl Ino {
                     s.hash_seed,
                     &dirent.filename,
                 );
-                println!("{:X} {:X} {:X}", hash, major, _minor);
+                println!(
+                    "Hash matches? {:X} == {:X}?: {}",
+                    hash,
+                    major,
+                    print_bool(hash == major)
+                );
+                if !hash == major {
+                    std::process::exit(-1);
+                }
                 //entry.validate();
                 // ah yes, reading the btree as an array to validate
                 // it.
             }
-
-            std::process::exit(0);
         } else {
             loop {
                 // based on docs I'm pretty sure there isn't more than
