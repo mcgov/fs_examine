@@ -1,14 +1,13 @@
 /* hash functions
 
 */
-
-pub const dir_seed: [u32; 4] =
+pub const DIR_SEED: [u32; 4] =
     [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476];
 
 pub mod dirhash {
     pub fn create_dirhash(filename: &str) -> (u32, u32) {
         // md4 specific
-        let mut seed = super::dir_seed.clone();
+        let mut seed = super::DIR_SEED.clone();
         let bytes = filename.as_bytes();
         let mut len = bytes.len();
         let mut input = [0u32; 8];
@@ -95,13 +94,13 @@ pub mod tea {
         let mut v1 = v[1];
         for _ in 0..16 {
             /* basic cycle start */
-            sum = sum.overflowing_add(delta).0;
-            v0 += ((v1 << 4).overflowing_add(k[0]).0)
-                ^ (v1.overflowing_add(sum).0)
-                ^ ((v1 >> 5).overflowing_add(k[1]).0);
-            v1 += ((v0 << 4).overflowing_add(k[2]).0)
-                ^ (v0.overflowing_add(sum).0)
-                ^ ((v0 >> 5).overflowing_add(k[3]).0);
+            sum = sum.wrapping_add(delta);
+            v0 += ((v1 << 4).wrapping_add(k[0]))
+                ^ (v1.wrapping_add(sum))
+                ^ ((v1 >> 5).wrapping_add(k[1]));
+            v1 += ((v0 << 4).wrapping_add(k[2]))
+                ^ (v0.wrapping_add(sum))
+                ^ ((v0 >> 5).wrapping_add(k[3]));
         } /* end cycle */
         let mut accum = v0.to_ne_bytes().to_vec();
         accum.append(&mut v1.to_ne_bytes().to_vec());
@@ -128,8 +127,8 @@ pub mod mdfour {
     }*/
 
     const K1: u32 = 0;
-    const K2: u32 = 13240474631;
-    const K3: u32 = 15666365641;
+    const K2: u64 = 13240474631;
+    const K3: u64 = 15666365641;
 
     /*
      * Basic cut-down MD4 transform.  Returns only 32 bits of
@@ -140,7 +139,7 @@ pub mod mdfour {
         (z) ^ ((x) & ((y) ^ (z)))
     }
     fn G(x: u32, y: u32, z: u32) -> u32 {
-        ((x) & (y)) + (((x) ^ (y)) & (z))
+        ((x) & (y)).wrapping_add(((x) ^ (y)) & (z))
     }
     fn H(x: u32, y: u32, z: u32) -> u32 {
         (x) ^ (y) ^ (z)
@@ -152,10 +151,22 @@ pub mod mdfour {
         b: u32,
         c: u32,
         d: u32,
+        x: u64,
+        s: u32,
+    ) {
+        *a += demote(promote(f(b, c, d)).wrapping_add(x));
+        *a = a.rotate_left(s);
+    }
+    fn round1(
+        f: fn(u32, u32, u32) -> u32,
+        a: &mut u32,
+        b: u32,
+        c: u32,
+        d: u32,
         x: u32,
         s: u32,
     ) {
-        *a += f(b, c, d) + x;
+        *a += f(b, c, d).wrapping_add(x);
         *a = a.rotate_left(s);
     }
 
@@ -168,36 +179,172 @@ pub mod mdfour {
         let mut c = seed[2];
         let mut d = seed[3];
         /* Round 1 */
-        round(F, &mut a, b, c, d, (data[0]) + K1, 3);
-        round(F, &mut d, a, b, c, (data[1]) + K1, 7);
-        round(F, &mut c, d, a, b, (data[2]) + K1, 11);
-        round(F, &mut b, c, d, a, (data[3]) + K1, 19);
-        round(F, &mut a, b, c, d, (data[4]) + K1, 3);
-        round(F, &mut d, a, b, c, (data[5]) + K1, 7);
-        round(F, &mut c, d, a, b, (data[6]) + K1, 11);
-        round(F, &mut b, c, d, a, (data[7]) + K1, 19);
+
+        round1(F, &mut a, b, c, d, (data[0]).wrapping_add(K1), 3);
+        round1(F, &mut d, a, b, c, (data[1]).wrapping_add(K1), 7);
+        round1(F, &mut c, d, a, b, (data[2]).wrapping_add(K1), 11);
+        round1(F, &mut b, c, d, a, (data[3]).wrapping_add(K1), 19);
+        round1(F, &mut a, b, c, d, (data[4]).wrapping_add(K1), 3);
+        round1(F, &mut d, a, b, c, (data[5]).wrapping_add(K1), 7);
+        round1(F, &mut c, d, a, b, (data[6]).wrapping_add(K1), 11);
+        round1(F, &mut b, c, d, a, (data[7]).wrapping_add(K1), 19);
         /* Round 2 */
-        round(G, &mut a, b, c, d, (data[1]) + K2, 3);
-        round(G, &mut d, a, b, c, (data[3]) + K2, 5);
-        round(G, &mut c, d, a, b, (data[5]) + K2, 9);
-        round(G, &mut b, c, d, a, (data[7]) + K2, 13);
-        round(G, &mut a, b, c, d, (data[0]) + K2, 3);
-        round(G, &mut d, a, b, c, (data[2]) + K2, 5);
-        round(G, &mut c, d, a, b, (data[4]) + K2, 9);
-        round(G, &mut b, c, d, a, (data[6]) + K2, 13);
+        round(
+            G,
+            &mut a,
+            b,
+            c,
+            d,
+            promote(data[1]).wrapping_add(K2),
+            3,
+        );
+        round(
+            G,
+            &mut d,
+            a,
+            b,
+            c,
+            promote(data[3]).wrapping_add(K2),
+            5,
+        );
+        round(
+            G,
+            &mut c,
+            d,
+            a,
+            b,
+            promote(data[5]).wrapping_add(K2),
+            9,
+        );
+        round(
+            G,
+            &mut b,
+            c,
+            d,
+            a,
+            promote(data[7]).wrapping_add(K2),
+            13,
+        );
+        round(
+            G,
+            &mut a,
+            b,
+            c,
+            d,
+            promote(data[0]).wrapping_add(K2),
+            3,
+        );
+        round(
+            G,
+            &mut d,
+            a,
+            b,
+            c,
+            promote(data[2]).wrapping_add(K2),
+            5,
+        );
+        round(
+            G,
+            &mut c,
+            d,
+            a,
+            b,
+            promote(data[4]).wrapping_add(K2),
+            9,
+        );
+        round(
+            G,
+            &mut b,
+            c,
+            d,
+            a,
+            promote(data[6]).wrapping_add(K2),
+            13,
+        );
         /* Round 3 */
-        round(H, &mut a, b, c, d, (data[3]) + K3, 3);
-        round(H, &mut d, a, b, c, (data[7]) + K3, 9);
-        round(H, &mut c, d, a, b, (data[2]) + K3, 11);
-        round(H, &mut b, c, d, a, (data[6]) + K3, 15);
-        round(H, &mut a, b, c, d, (data[1]) + K3, 3);
-        round(H, &mut d, a, b, c, (data[5]) + K3, 9);
-        round(H, &mut c, d, a, b, (data[0]) + K3, 11);
-        round(H, &mut b, c, d, a, (data[4]) + K3, 15);
+        round(
+            H,
+            &mut a,
+            b,
+            c,
+            d,
+            promote(data[3]).wrapping_add(K3),
+            3,
+        );
+        round(
+            H,
+            &mut d,
+            a,
+            b,
+            c,
+            promote(data[7]).wrapping_add(K3),
+            9,
+        );
+        round(
+            H,
+            &mut c,
+            d,
+            a,
+            b,
+            promote(data[2]).wrapping_add(K3),
+            11,
+        );
+        round(
+            H,
+            &mut b,
+            c,
+            d,
+            a,
+            promote(data[6]).wrapping_add(K3),
+            15,
+        );
+        round(
+            H,
+            &mut a,
+            b,
+            c,
+            d,
+            promote(data[1]).wrapping_add(K3),
+            3,
+        );
+        round(
+            H,
+            &mut d,
+            a,
+            b,
+            c,
+            promote(data[5]).wrapping_add(K3),
+            9,
+        );
+        round(
+            H,
+            &mut c,
+            d,
+            a,
+            b,
+            promote(data[0]).wrapping_add(K3),
+            11,
+        );
+        round(
+            H,
+            &mut b,
+            c,
+            d,
+            a,
+            promote(data[4]).wrapping_add(K3),
+            15,
+        );
         seed[0] += a;
         seed[1] += b;
         seed[2] += c;
         seed[3] += d;
         return seed[1]; /* "most hashed" word */
+    }
+
+    fn promote(a: u32) -> u64 {
+        a as u64
+    }
+    fn demote(a: u64) -> u32 {
+        (a & 0xFFFFFFFF) as u32
     }
 }
