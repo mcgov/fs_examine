@@ -344,7 +344,7 @@ impl Ino {
                 println!("{:x?}", dirent);
                 let (major, _minor) =
                     hash::dirhash::create_dirhash(&dirent.filename);
-                println!("{:X} {:X}", hash, major);
+                println!("{:X} {:X} {:X}", hash, major, _minor);
                 //entry.validate();
                 // ah yes, reading the btree as an array to validate
                 // it.

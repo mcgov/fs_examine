@@ -28,7 +28,7 @@ pub mod dirhash {
         // comment any of this.
         let mut pad: u32;
         let mut val: u32;
-        let mut num = num_;
+        let mut num: i32 = num_;
         let bytes = fname.as_bytes();
         let mut len = bytes.len() as u32;
         pad = len | (len << 8);
@@ -42,6 +42,7 @@ pub mod dirhash {
             val = bytes[i] as u32 + (val << 8);
             if (i % 4) == 3 {
                 buf[outc] = val;
+                val = pad;
                 num -= 1;
                 outc += 1;
             }
@@ -56,6 +57,7 @@ pub mod dirhash {
             outc += 1;
             num -= 1;
         }
+        println!("BUF: {:?}", buf);
     }
     /*
         static void str2hashbuf_signed(const char *msg, int len, __u32 *buf, int num)
@@ -135,14 +137,14 @@ pub mod mdfour {
      * result.
      */
 
-    fn F(x: u32, y: u32, z: u32) -> u32 {
+    fn efph(x: u32, y: u32, z: u32) -> u32 {
         (z) ^ ((x) & ((y) ^ (z)))
     }
-    fn G(x: u32, y: u32, z: u32) -> u32 {
+    fn geez(x: u32, y: u32, z: u32) -> u32 {
         ((x) & (y)).wrapping_add(((x) ^ (y)) & (z))
     }
-    fn H(x: u32, y: u32, z: u32) -> u32 {
-        (x) ^ (y) ^ (z)
+    fn eych(x: u32, y: u32, z: u32) -> u32 {
+        x ^ y ^ z
     }
 
     fn round(
@@ -154,7 +156,9 @@ pub mod mdfour {
         x: u64,
         s: u32,
     ) {
-        *a += demote(promote(f(b, c, d)).wrapping_add(x));
+        *a = a.wrapping_add(demote(
+            promote(f(b, c, d)).wrapping_add(x),
+        ));
         *a = a.rotate_left(s);
     }
     fn round1(
@@ -166,8 +170,8 @@ pub mod mdfour {
         x: u32,
         s: u32,
     ) {
-        *a += f(b, c, d).wrapping_add(x);
-        *a = a.rotate_left(s);
+        *a = a.wrapping_add(f(b, c, d).wrapping_add(x));
+        *a = a.wrapping_add(a.rotate_left(s));
     }
 
     pub fn half_md4_transform(
@@ -180,17 +184,17 @@ pub mod mdfour {
         let mut d = seed[3];
         /* Round 1 */
 
-        round1(F, &mut a, b, c, d, (data[0]).wrapping_add(K1), 3);
-        round1(F, &mut d, a, b, c, (data[1]).wrapping_add(K1), 7);
-        round1(F, &mut c, d, a, b, (data[2]).wrapping_add(K1), 11);
-        round1(F, &mut b, c, d, a, (data[3]).wrapping_add(K1), 19);
-        round1(F, &mut a, b, c, d, (data[4]).wrapping_add(K1), 3);
-        round1(F, &mut d, a, b, c, (data[5]).wrapping_add(K1), 7);
-        round1(F, &mut c, d, a, b, (data[6]).wrapping_add(K1), 11);
-        round1(F, &mut b, c, d, a, (data[7]).wrapping_add(K1), 19);
+        round1(efph, &mut a, b, c, d, (data[0]).wrapping_add(K1), 3);
+        round1(efph, &mut d, a, b, c, (data[1]).wrapping_add(K1), 7);
+        round1(efph, &mut c, d, a, b, (data[2]).wrapping_add(K1), 11);
+        round1(efph, &mut b, c, d, a, (data[3]).wrapping_add(K1), 19);
+        round1(efph, &mut a, b, c, d, (data[4]).wrapping_add(K1), 3);
+        round1(efph, &mut d, a, b, c, (data[5]).wrapping_add(K1), 7);
+        round1(efph, &mut c, d, a, b, (data[6]).wrapping_add(K1), 11);
+        round1(efph, &mut b, c, d, a, (data[7]).wrapping_add(K1), 19);
         /* Round 2 */
         round(
-            G,
+            geez,
             &mut a,
             b,
             c,
@@ -199,7 +203,7 @@ pub mod mdfour {
             3,
         );
         round(
-            G,
+            geez,
             &mut d,
             a,
             b,
@@ -208,7 +212,7 @@ pub mod mdfour {
             5,
         );
         round(
-            G,
+            geez,
             &mut c,
             d,
             a,
@@ -217,7 +221,7 @@ pub mod mdfour {
             9,
         );
         round(
-            G,
+            geez,
             &mut b,
             c,
             d,
@@ -226,7 +230,7 @@ pub mod mdfour {
             13,
         );
         round(
-            G,
+            geez,
             &mut a,
             b,
             c,
@@ -235,7 +239,7 @@ pub mod mdfour {
             3,
         );
         round(
-            G,
+            geez,
             &mut d,
             a,
             b,
@@ -244,7 +248,7 @@ pub mod mdfour {
             5,
         );
         round(
-            G,
+            geez,
             &mut c,
             d,
             a,
@@ -253,7 +257,7 @@ pub mod mdfour {
             9,
         );
         round(
-            G,
+            geez,
             &mut b,
             c,
             d,
@@ -263,7 +267,7 @@ pub mod mdfour {
         );
         /* Round 3 */
         round(
-            H,
+            eych,
             &mut a,
             b,
             c,
@@ -272,7 +276,7 @@ pub mod mdfour {
             3,
         );
         round(
-            H,
+            eych,
             &mut d,
             a,
             b,
@@ -281,7 +285,7 @@ pub mod mdfour {
             9,
         );
         round(
-            H,
+            eych,
             &mut c,
             d,
             a,
@@ -290,7 +294,7 @@ pub mod mdfour {
             11,
         );
         round(
-            H,
+            eych,
             &mut b,
             c,
             d,
@@ -299,7 +303,7 @@ pub mod mdfour {
             15,
         );
         round(
-            H,
+            eych,
             &mut a,
             b,
             c,
@@ -308,7 +312,7 @@ pub mod mdfour {
             3,
         );
         round(
-            H,
+            eych,
             &mut d,
             a,
             b,
@@ -317,7 +321,7 @@ pub mod mdfour {
             9,
         );
         round(
-            H,
+            eych,
             &mut c,
             d,
             a,
@@ -326,7 +330,7 @@ pub mod mdfour {
             11,
         );
         round(
-            H,
+            eych,
             &mut b,
             c,
             d,
@@ -334,10 +338,10 @@ pub mod mdfour {
             promote(data[4]).wrapping_add(K3),
             15,
         );
-        seed[0] += a;
-        seed[1] += b;
-        seed[2] += c;
-        seed[3] += d;
+        seed[0] = seed[0].wrapping_add(a);
+        seed[1] = seed[1].wrapping_add(b);
+        seed[2] = seed[2].wrapping_add(c);
+        seed[3] = seed[3].wrapping_add(d);
         return seed[1]; /* "most hashed" word */
     }
 
