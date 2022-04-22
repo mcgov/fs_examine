@@ -46,7 +46,8 @@ fn main() {
 			disk::PartitionType::Unused => { /* */ }
 			_ => {
 				println!(
-					"Note: Filesystem partition type {:?} is not implemented.",
+					"Note: Filesystem partition type {:?} is not \
+					 implemented.",
 					part.p_type
 				);
 			}
