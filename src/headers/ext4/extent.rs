@@ -37,7 +37,12 @@ impl ExtentHeader {
 pub struct ExtentNode {
     pub ei_block: u32, /* 	This index node covers file
                         * blocks from 'block' onward. */
-    pub ei_leaf_lo: u32, /* Lower 32-bits of the block number of the extent node that is the next level lower in the tree. The tree node pointed to can be either another internal node or a leaf node, described below. */
+    pub ei_leaf_lo: u32, /* Lower 32-bits of the block number of
+                          * the extent node that is the next level
+                          * lower in the tree. The tree node
+                          * pointed to can be either another
+                          * internal node or a leaf node,
+                          * described below. */
     pub ei_leaf_hi: u16, /* 	Upper 16-bits of the
                           * previous field. */
     pub ei_unused: u16, //
@@ -45,8 +50,7 @@ pub struct ExtentNode {
 
 impl ExtentNode {
     pub fn get_block(&self) -> u64 {
-        self.ei_leaf_lo as u64
-            | ((self.ei_leaf_hi as u64) << 32)
+        self.ei_leaf_lo as u64 | ((self.ei_leaf_hi as u64) << 32)
     }
 }
 
@@ -98,8 +102,7 @@ impl ExtentLeaf {
             && self.ee_start_lo == 0;
     }
     pub fn content_block(&self) -> u64 {
-        self.ee_start_lo as u64
-            | ((self.ee_start_hi as u64) << 32)
+        self.ee_start_lo as u64 | ((self.ee_start_hi as u64) << 32)
     }
     pub fn leaf_initialized(&self) -> bool {
         self.ee_len <= 32768
@@ -109,6 +112,9 @@ impl ExtentLeaf {
             return self.ee_len;
         }
         0
+    }
+    pub fn file_block(&self) -> u32 {
+        self.ee_block
     }
     pub fn bytes_covered(&self, block_size: u64) -> u64 {
         self.block_length() as u64 * block_size
@@ -134,10 +140,8 @@ impl ExtentLeaf {
             block_size,
         );
         if content_size > bytes_in_bloc {
-            return reader.read_bytes_from_file(
-                offset,
-                bytes_in_bloc,
-            );
+            return reader
+                .read_bytes_from_file(offset, bytes_in_bloc);
         }
         reader.read_bytes_from_file(offset, content_size)
     }
@@ -145,9 +149,8 @@ impl ExtentLeaf {
 
 impl ExtentTree {
     pub fn init(block: &[u8]) -> ExtentTree {
-        let header = reader::read_header_from_bytes::<
-            ExtentHeader,
-        >(&block);
+        let header =
+            reader::read_header_from_bytes::<ExtentHeader>(&block);
         let sz_hdr = std::mem::size_of::<ExtentHeader>();
         let entries = header.eh_entries as usize;
         let max_entries = header.eh_max;
@@ -166,9 +169,7 @@ impl ExtentTree {
             // leaf town
             let mut leafs: Vec<ExtentLeaf> = vec![];
             for i in 0..entries {
-                let leaf = reader::read_header_from_bytes::<
-                    ExtentLeaf,
-                >(
+                let leaf = reader::read_header_from_bytes::<ExtentLeaf>(
                     &block[sz_hdr + i * leaf_size..],
                 );
                 //println!("b:{:x} l:{:x}", leaf.ee_block,
@@ -180,19 +181,17 @@ impl ExtentTree {
             }
             leaf_op = Some(leafs);
             tail = reader::read_header_from_bytes(
-                &block[sz_hdr
-                    + entries * leaf_size as usize..],
+                &block[sz_hdr + entries * leaf_size as usize..],
             );
         } else {
             //node city
             let mut branches: Vec<ExtentNode> = vec![];
 
             for i in 0..entries {
-                let branch = reader::read_header_from_bytes::<
-                    ExtentNode,
-                >(
-                    &block[sz_hdr + i * node_size..],
-                );
+                let branch =
+                    reader::read_header_from_bytes::<ExtentNode>(
+                        &block[sz_hdr + i * node_size..],
+                    );
                 // println!(
                 //     "{:x} {:x} {:x}",
                 //     branch.ei_block, branch.ei_leaf_lo,
@@ -202,8 +201,7 @@ impl ExtentTree {
             }
             branch_op = Some(branches);
             tail = reader::read_header_from_bytes(
-                &block[sz_hdr
-                    + entries * node_size as usize..],
+                &block[sz_hdr + entries * node_size as usize..],
             );
         }
 
@@ -227,42 +225,65 @@ impl ExtentTree {
         if self.hdr.eh_depth != 0 {
             if matches!(self.branch, None) {
                 panic!(
-                    "Extent error: depth was not 0 but \
-                     there were no branches"
+                    "Extent error: depth was not 0 but there were \
+                     no branches"
                 );
             }
-            // FIXME: this is broken, internal node reading
-            // is incorrect
             for node in self.branch.as_ref().unwrap() {
                 // get the address of the next block
                 let addr = node.get_block();
-                let offset =
-                    reader::get_offset_from_block_number(
-                        block_0, addr, block_size,
-                    );
+                let offset = reader::get_offset_from_block_number(
+                    block_0, addr, block_size,
+                );
                 // init the block
-                let bytes =
-                    reader.read_bytes_from_file(offset, 12); //read a block
-                let header =
-                    reader::read_header_from_bytevec::<
-                        ExtentHeader,
-                    >(bytes);
+                let bytes = reader.read_bytes_from_file(offset, 12); //read a block
+                let header = reader::read_header_from_bytevec::<
+                    ExtentHeader,
+                >(bytes);
                 assert_eq!(header.check_magic(), true);
-                let next_block_size = 12
-                    + (header.eh_entries as u64 * 12)
-                    + 4;
+                let next_block_size =
+                    12 + (header.eh_entries as u64 * 12) + 4;
                 let next_node_block = reader
-                    .read_bytes_from_file(
-                        offset,
-                        next_block_size,
-                    );
+                    .read_bytes_from_file(offset, next_block_size);
                 // add it to the list
-                let mut tree =
-                    ExtentTree::init(&next_node_block);
+                let mut tree = ExtentTree::init(&next_node_block);
                 tree.ascend(reader, block_0, block_size);
                 self.subtrees.push(tree);
             }
         }
+    }
+
+    pub fn dx_get_file_block(
+        &self,
+        fblock: u32,
+    ) -> Option<ExtentLeaf> {
+        println!(
+            "finding {} in subtrees {:x}",
+            fblock,
+            self.subtrees.len()
+        );
+
+        match &self.leaf {
+            Some(leafs) => {
+                //println!("leaves: {}", leafs.len());
+                for leaf in leafs.clone() {
+                    println!("file block:{:x?}", leaf.ee_block);
+                    if leaf.ee_block == fblock {
+                        return Some(leaf);
+                    }
+                }
+            }
+            None => {}
+        }
+        for tree in self.subtrees.clone() {
+            match tree.dx_get_file_block(fblock) {
+                Some(leaf) => {
+                    return Some(leaf);
+                }
+                _ => {}
+            }
+        }
+        None
     }
 
     pub fn walk(
@@ -283,15 +304,12 @@ impl ExtentTree {
                 Some(leafs) => {
                     //println!("leaves: {}", leafs.len());
                     for mut leaf in leafs.clone() {
-                        bytes_left = (f_size
-                            - content.len())
-                        .try_into()
-                        .unwrap();
-                        let mut bytes = leaf
-                            .get_file_content(
-                                reader, block_0,
-                                block_size, bytes_left,
-                            );
+                        bytes_left = (f_size - content.len())
+                            .try_into()
+                            .unwrap();
+                        let mut bytes = leaf.get_file_content(
+                            reader, block_0, block_size, bytes_left,
+                        );
                         content.append(&mut bytes);
                     }
                 }
@@ -304,9 +322,7 @@ impl ExtentTree {
         for mut tree in self.subtrees.clone() {
             // this doesn't take into account the file block
             // order yet
-            bytes_left = (f_size - content.len())
-                .try_into()
-                .unwrap();
+            bytes_left = (f_size - content.len()).try_into().unwrap();
             let mut tree_bytes = tree.walk(
                 reader,
                 block_0,

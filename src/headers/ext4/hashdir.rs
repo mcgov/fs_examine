@@ -86,6 +86,12 @@ impl Root {
         );
         true
     }
+    pub fn last_level(&self) -> bool {
+        self.root_info.indirect_levels == 0
+    }
+    pub fn indirect_levels(&self) -> usize {
+        self.root_info.indirect_levels as usize
+    }
 }
 
 #[derive(Deserialize, Copy, Clone, Debug)]
@@ -183,11 +189,18 @@ pub struct Node {
 #[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct Entry {
-    hash: u32, // 	Hash code.
-    block: u32, /* 	Block number (within the directory
-                * file, not filesystem blocks) of the
-                * next node in the htree. */
+    pub hash: u32, // 	Hash code.
+    block: u32,    /* 	Block number (within the directory
+                    * file, not filesystem blocks) of the
+                    * next node in the htree. */
 }
+
+impl Entry {
+    pub fn get_block(&self) -> u32 {
+        self.block
+    }
+}
+
 #[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct Tail {

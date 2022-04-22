@@ -95,6 +95,7 @@ use crate::headers::ext4::inode::Inode;
 use crate::headers::ext4::reader::Exatt;
 use crate::headers::ext4::reader::Ino;
 use crate::headers::ext4::superblock::Superblock;
+use crate::headers::hash;
 use crate::headers::reader::*;
 use crate::headers::summer;
 use std::mem::size_of;
@@ -307,9 +308,44 @@ impl Ino {
             println!("{:X?}", root,);
             println!("{:?}", root.hash_version());
 
-            for i in 0..root.count {
-                let entry =
-                    read_header_from_bytes::<hashdir::Entry>(&data);
+            let entry_offset = std::mem::size_of::<hashdir::Root>();
+            let entry_size = std::mem::size_of::<hashdir::Entry>();
+            for i in 0..root.count as usize {
+                let entry = read_header_from_bytes::<hashdir::Entry>(
+                    &data[entry_offset + entry_size * i..],
+                );
+                println!("{:x?}", entry);
+                if !root.last_level() {
+                    //the next level is a node to another level
+                    println!("not the last level");
+                }
+                let hash = entry.hash;
+                let hashblk = entry.get_block();
+                let leaf_found = extents.dx_get_file_block(hashblk);
+                let mut leaf: extent::ExtentLeaf;
+                match leaf_found {
+                    Some(lea) => {
+                        leaf = lea;
+                    }
+                    None => {
+                        println!(
+                            "Couldn't find file block for {:x?}!!!",
+                            entry
+                        );
+                        continue;
+                    }
+                }
+                let dir_data =
+                    leaf.get_file_content(reader, block0, bs, 1024);
+                let (_ino, len) =
+                    dirent::peek_record_len(&dir_data[..]);
+                let dirent =
+                    dirent::get_dir_ent(&dir_data[..len as usize]);
+                println!("{:x?}", dirent);
+                let hashed = hash::mdfour::hash_ext4(
+                    &dirent.filename.as_bytes(),
+                );
+                println!("{:X} {:X}", hash, hashed);
                 //entry.validate();
                 // ah yes, reading the btree as an array to validate
                 // it.

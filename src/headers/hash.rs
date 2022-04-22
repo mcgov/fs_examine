@@ -66,9 +66,17 @@ pub mod tea {
 
 pub mod mdfour {
     use md4::{Digest, Md4};
+    /*I think ext4 doesn't actually use md4, by 'half' it literally
+    only runs half the rounds and only uses half the result. */
     pub fn hash(data: &[u8]) -> [u8; 16] {
         let mut hasher = Md4::new();
         hasher.update(data);
         hasher.finalize().into()
+    }
+    pub fn hash_ext4(data: &[u8]) -> u32 {
+        let mut hasher = Md4::new();
+        hasher.update(data);
+        let hash = hasher.finalize();
+        u32::from_le_bytes([hash[4], hash[5], hash[6], hash[7]])
     }
 }
