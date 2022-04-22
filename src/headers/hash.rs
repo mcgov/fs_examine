@@ -6,11 +6,57 @@ pub const dir_seed: [u32; 4] =
     [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476];
 
 pub mod dirhash {
-    pub fn create_dirhash(filename: &str) -> u32 {
-        0
+    pub fn create_dirhash(filename: &str) -> (u32, u32) {
+        // md4 specific
+        let mut seed = super::dir_seed.clone();
+        let bytes = filename.as_bytes();
+        let mut len = bytes.len();
+        let mut input = [0u32; 8];
+        let mut fnamep = 0;
+        loop {
+            str_to_hashbuf(&filename[fnamep..], 8, &mut input);
+            super::mdfour::half_md4_transform(&mut seed, input);
+            if len < 32 {
+                break;
+            }
+            len -= 32;
+            fnamep += 32;
+        }
+        (seed[1], seed[2])
     }
-    fn str_to_hash(fname: &str) -> &[u32] {
-        &[0u32]
+    fn str_to_hashbuf(fname: &str, num_: i32, buf: &mut [u32; 8]) {
+        // in honor of the original code I will also not
+        // comment any of this.
+        let mut pad: u32;
+        let mut val: u32;
+        let mut num = num_;
+        let bytes = fname.as_bytes();
+        let mut len = bytes.len() as u32;
+        pad = len | (len << 8);
+        pad |= pad << 16;
+        val = pad;
+        if len > num as u32 * 4 {
+            len = num as u32 * 4;
+        }
+        let mut outc = 0;
+        for i in 0..len as usize {
+            val = bytes[i] as u32 + (val << 8);
+            if (i % 4) == 3 {
+                buf[outc] = val;
+                num -= 1;
+                outc += 1;
+            }
+        }
+        if num - 1 >= 0 {
+            buf[outc] = val;
+            outc += 1;
+        }
+        num -= 1;
+        while num - 1 > 0 {
+            buf[outc] = pad;
+            outc += 1;
+            num -= 1;
+        }
     }
     /*
         static void str2hashbuf_signed(const char *msg, int len, __u32 *buf, int num)
@@ -68,6 +114,7 @@ pub mod mdfour {
     use md4::{Digest, Md4};
     /*I think ext4 doesn't actually use md4, by 'half' it literally
     only runs half the rounds and only uses half the result. */
+    /*
     pub fn hash(data: &[u8]) -> [u8; 16] {
         let mut hasher = Md4::new();
         hasher.update(data);
@@ -78,5 +125,79 @@ pub mod mdfour {
         hasher.update(data);
         let hash = hasher.finalize();
         u32::from_le_bytes([hash[4], hash[5], hash[6], hash[7]])
+    }*/
+
+    const K1: u32 = 0;
+    const K2: u32 = 13240474631;
+    const K3: u32 = 15666365641;
+
+    /*
+     * Basic cut-down MD4 transform.  Returns only 32 bits of
+     * result.
+     */
+
+    fn F(x: u32, y: u32, z: u32) -> u32 {
+        (z) ^ ((x) & ((y) ^ (z)))
+    }
+    fn G(x: u32, y: u32, z: u32) -> u32 {
+        ((x) & (y)) + (((x) ^ (y)) & (z))
+    }
+    fn H(x: u32, y: u32, z: u32) -> u32 {
+        (x) ^ (y) ^ (z)
+    }
+
+    fn round(
+        f: fn(u32, u32, u32) -> u32,
+        a: &mut u32,
+        b: u32,
+        c: u32,
+        d: u32,
+        x: u32,
+        s: u32,
+    ) {
+        *a += f(b, c, d) + x;
+        *a = a.rotate_left(s);
+    }
+
+    pub fn half_md4_transform(
+        seed: &mut [u32; 4],
+        data: [u32; 8],
+    ) -> u32 {
+        let mut a = seed[0];
+        let mut b = seed[1];
+        let mut c = seed[2];
+        let mut d = seed[3];
+        /* Round 1 */
+        round(F, &mut a, b, c, d, (data[0]) + K1, 3);
+        round(F, &mut d, a, b, c, (data[1]) + K1, 7);
+        round(F, &mut c, d, a, b, (data[2]) + K1, 11);
+        round(F, &mut b, c, d, a, (data[3]) + K1, 19);
+        round(F, &mut a, b, c, d, (data[4]) + K1, 3);
+        round(F, &mut d, a, b, c, (data[5]) + K1, 7);
+        round(F, &mut c, d, a, b, (data[6]) + K1, 11);
+        round(F, &mut b, c, d, a, (data[7]) + K1, 19);
+        /* Round 2 */
+        round(G, &mut a, b, c, d, (data[1]) + K2, 3);
+        round(G, &mut d, a, b, c, (data[3]) + K2, 5);
+        round(G, &mut c, d, a, b, (data[5]) + K2, 9);
+        round(G, &mut b, c, d, a, (data[7]) + K2, 13);
+        round(G, &mut a, b, c, d, (data[0]) + K2, 3);
+        round(G, &mut d, a, b, c, (data[2]) + K2, 5);
+        round(G, &mut c, d, a, b, (data[4]) + K2, 9);
+        round(G, &mut b, c, d, a, (data[6]) + K2, 13);
+        /* Round 3 */
+        round(H, &mut a, b, c, d, (data[3]) + K3, 3);
+        round(H, &mut d, a, b, c, (data[7]) + K3, 9);
+        round(H, &mut c, d, a, b, (data[2]) + K3, 11);
+        round(H, &mut b, c, d, a, (data[6]) + K3, 15);
+        round(H, &mut a, b, c, d, (data[1]) + K3, 3);
+        round(H, &mut d, a, b, c, (data[5]) + K3, 9);
+        round(H, &mut c, d, a, b, (data[0]) + K3, 11);
+        round(H, &mut b, c, d, a, (data[4]) + K3, 15);
+        seed[0] += a;
+        seed[1] += b;
+        seed[2] += c;
+        seed[3] += d;
+        return seed[1]; /* "most hashed" word */
     }
 }

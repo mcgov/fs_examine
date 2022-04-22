@@ -342,10 +342,9 @@ impl Ino {
                 let dirent =
                     dirent::get_dir_ent(&dir_data[..len as usize]);
                 println!("{:x?}", dirent);
-                let hashed = hash::mdfour::hash_ext4(
-                    &dirent.filename.as_bytes(),
-                );
-                println!("{:X} {:X}", hash, hashed);
+                let (major, _minor) =
+                    hash::dirhash::create_dirhash(&dirent.filename);
+                println!("{:X} {:X}", hash, major);
                 //entry.validate();
                 // ah yes, reading the btree as an array to validate
                 // it.
