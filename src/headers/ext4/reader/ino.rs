@@ -193,7 +193,9 @@ impl Ino {
             );
             return true;
         }
-
+        if self.seed == 0 {
+            self.set_inode_checksum_seed(s);
+        }
         let mut csum = self.seed;
         let mut inode = self.inode.clone();
         inode.checksum_hi = 0;
@@ -309,7 +311,10 @@ impl Ino {
             }
             println!("{:x?}", root);
             if !root.validate(bs as u16) {
+                println!("{}", "Root did not validate".red());
                 std::thread::sleep_ms(1000);
+                self.dirs = None;
+                return;
             }
 
             println!("{:?}", root.hash_version());
@@ -349,10 +354,10 @@ impl Ino {
                     None => {
                         println!(
                             "{} {:x?}!!",
-                            "Couldn't find file block for".yellow(),
+                            "Note: couldn't find file block for",
                             entry
                         );
-                        std::thread::sleep_ms(100);
+                        //std::thread::sleep_ms(100);
 
                         continue;
                     }
@@ -407,7 +412,6 @@ impl Ino {
                 let last = dirent.is_last_dirent();
                 if dirent.is_checksum_entry() {
                     let csum = dirent.csum.unwrap();
-
                     println!(
                         "DATA_LEN: {} LEN LEFT: {}",
                         data.len(),

@@ -47,6 +47,7 @@ impl Bg {
         }
         block
     }
+
     pub fn get_free_inodes_count(&self) -> u32 {
         let mut free_count =
             self.b32.as_ref().unwrap().free_inodes_count_lo as u32;
@@ -63,6 +64,22 @@ impl Bg {
         let bg32 = self.b32.unwrap();
         bg32.is_uninitialized()
     }
+    pub fn inodes_uninit(&self) -> bool {
+        let bg32 = self.b32.unwrap();
+        bg32.inodes_uninit()
+    }
+
+    pub fn unused_inodes_index(&self) -> u32 {
+        let mut unused_index =
+            self.b32.as_ref().unwrap().itable_unused_lo as u32;
+        match &self.b64 {
+            Some(b) => {
+                unused_index |= (b.itable_unused_hi as u32) << 16;
+            }
+            None => {}
+        }
+        unused_index
+    }
 
     pub fn populate_inodes(
         &mut self,
@@ -70,9 +87,8 @@ impl Bg {
         s: &Superblock,
         start: u64,
     ) {
-        if self.is_uninitialized() {
-            //println!("Skipping uninitialized block
-            // group...");
+        if self.inodes_uninit() {
+            println!("Skipping uninitialized inode table...");
             return;
         }
         let block_table = self.get_inode_table_block();
@@ -81,13 +97,15 @@ impl Bg {
             get_offset_from_block_number(start, block_table, bs)
                 as u64;
         let inode_size = s.inode_size;
-        let node_count =
+        let mut node_count =
             s.inodes_per_group - self.get_free_inodes_count();
         if node_count != 0 {
             println!("found {} inodes", node_count);
         }
-        for j in 0..s.inodes_per_group - self.get_free_inodes_count()
-        {
+        if self.unused_inodes_index() != 0 {
+            node_count = self.unused_inodes_index();
+        }
+        for j in 0..node_count {
             let current_offset =
                 inode_table + inode_size as u64 * j as u64;
             let inode = reader
@@ -113,7 +131,7 @@ impl Bg {
                 )
             );
             inode.print_fields();
-
+            ino.set_inode_checksum_seed(s);
             ino.populate_ext_attrs(reader, s, start);
             ino.populate_extents(reader, s, start);
             // doesn't differentiate between file content
@@ -133,7 +151,6 @@ impl Bg {
                 }
                 ino.get_directory_entries(reader, s, start);
             }
-            ino.set_inode_checksum_seed(s);
             ino.validate_checksum(reader, s);
 
             self.ino.push(ino);

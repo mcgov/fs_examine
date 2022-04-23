@@ -2,7 +2,7 @@ use crate::headers::reader;
 use crate::headers::reader::OnDisk;
 use serde::Deserialize;
 
-#[derive(Deserialize, Copy, Clone)]
+#[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct ExtentHeader {
     pub eh_magic: u16, // 	Magic number, 0xF30A.
@@ -153,12 +153,14 @@ impl ExtentTree {
             reader::read_header_from_bytes::<ExtentHeader>(&block);
         let sz_hdr = std::mem::size_of::<ExtentHeader>();
         let entries = header.eh_entries as usize;
+        println!("Extent header has {} entries", entries);
         let max_entries = header.eh_max;
         let magic = header.eh_magic;
         assert_eq!(0xF30A, magic);
         if entries >= max_entries as usize {
             panic!("oops, entries larger than max entries");
         }
+        println!("Header: {:X?}", header);
         let mut leaf_op: Option<Vec<ExtentLeaf>> = None;
         let mut branch_op: Option<Vec<ExtentNode>> = None;
         let tail: ExtentTail;
@@ -184,7 +186,7 @@ impl ExtentTree {
         } else {
             //node city
             let mut branches: Vec<ExtentNode> = vec![];
-
+            println!("found extent interior nodes: {}", entries);
             for i in 0..entries {
                 let branch =
                     reader::read_header_from_bytes::<ExtentNode>(
@@ -261,7 +263,7 @@ impl ExtentTree {
             Some(leafs) => {
                 //println!("leaves: {}", leafs.len());
                 for leaf in leafs.clone() {
-                    println!("file block:{:x?}", leaf.ee_block);
+                    //println!("file block:{:x?}", leaf.ee_block);
                     if leaf.ee_block == fblock {
                         return Some(leaf);
                     }
@@ -307,7 +309,9 @@ impl ExtentTree {
                         content.append(&mut bytes);
                     }
                 }
-                None => {}
+                None => {
+                    panic!("tree length was 0 but contined no leaves")
+                }
             }
             // we've populated already so subtrees should
             // contain the info needed to get to
