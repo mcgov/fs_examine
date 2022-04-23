@@ -91,13 +91,14 @@ use crate::headers::constants;
 use crate::headers::ext4;
 use crate::headers::ext4::dirent;
 use crate::headers::ext4::extent;
+use crate::headers::ext4::hash;
 use crate::headers::ext4::inode::Inode;
 use crate::headers::ext4::reader::Exatt;
 use crate::headers::ext4::reader::Ino;
 use crate::headers::ext4::superblock::Superblock;
-use crate::headers::hash;
 use crate::headers::reader::*;
 use crate::headers::summer;
+use colored::*;
 use std::mem::size_of;
 
 impl Ino {
@@ -156,7 +157,7 @@ impl Ino {
         block0: u64,
     ) {
         let inode = self.inode;
-        inode.print_fields();
+        //inode.print_fields();
 
         if !inode.inode_uses_extents() {
             return;
@@ -303,21 +304,39 @@ impl Ino {
             && self.inode.uses_hash_tree_directories()
         {
             let root = read_header_from_bytes::<hashdir::Root>(&data);
-            root.validate(bs as u16);
+            if !root.not_inode_0() {
+                return;
+            }
+            println!("{:x?}", root);
+            if !root.validate(bs as u16) {
+                std::thread::sleep_ms(1000);
+            }
 
-            println!("{:X?}", root,);
             println!("{:?}", root.hash_version());
 
             let entry_offset = std::mem::size_of::<hashdir::Root>();
             let entry_size = std::mem::size_of::<hashdir::Entry>();
             for i in 0..root.count as usize {
+                // this is backwards from how the tree is supposed to
+                // work since we're just reading to
+                // validate and don't care about
+                // perf I'll come back to actually bsearch later.
                 let entry = read_header_from_bytes::<hashdir::Entry>(
                     &data[entry_offset + entry_size * i..],
                 );
                 println!("{:x?}", entry);
+                if entry.empty() {
+                    continue;
+                }
                 if !root.last_level() {
                     //the next level is a node to another level
-                    println!("not the last level");
+                    println!(
+                        "{}",
+                        "Not the last level, haven't implemented \
+                         interior nodes!"
+                            .yellow()
+                    );
+                    continue;
                 }
                 let hash = entry.hash;
                 let hashblk = entry.get_block();
@@ -329,9 +348,12 @@ impl Ino {
                     }
                     None => {
                         println!(
-                            "Couldn't find file block for {:x?}!!!",
+                            "{} {:x?}!!",
+                            "Couldn't find file block for".yellow(),
                             entry
                         );
+                        std::thread::sleep_ms(100);
+
                         continue;
                     }
                 }
@@ -345,6 +367,7 @@ impl Ino {
                 let (major, _minor) = hash::dirhash::create_dirhash(
                     s.hash_seed,
                     &dirent.filename,
+                    &root,
                 );
                 println!(
                     "Hash matches? {:X} == {:X}?: {}",
@@ -352,7 +375,11 @@ impl Ino {
                     major,
                     print_bool(hash == major)
                 );
-                if !hash == major {
+                if !(hash == major) {
+                    println!(
+                        "Error, hash indexed dir's hash did not \
+                         match."
+                    );
                     std::process::exit(-1);
                 }
                 //entry.validate();

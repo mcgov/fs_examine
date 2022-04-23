@@ -1,5 +1,7 @@
+use super::hash::hash_versions;
 use colored::*;
 use serde::Deserialize;
+
 #[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct Root {
@@ -39,14 +41,17 @@ impl Root {
     pub fn hash_version(&self) -> hash_versions::HashVer {
         self.root_info.hash_version()
     }
-
-    pub fn traverse(&self, target: u32) /* placeholder */ {}
 }
 
 macro_rules! validate_field {
     ($field:expr,$value:expr) => {
         if $field != $value {
-            println!("Error: {:#?} != {:#?}", $field, $value);
+            println!(
+                "Error on field {}: {:x?} != {:x?}",
+                stringify!($field),
+                $field,
+                $value
+            );
             return false;
         }
     };
@@ -54,12 +59,15 @@ macro_rules! validate_field {
 macro_rules! validate_field_lt {
     ($field:expr,$value:expr) => {
         if $field >= $value {
-            println!("Error: {:#?} != {:#?}", $field, $value);
+            println!("Error: {:#x?} != {:#x?}", $field, $value);
             return false;
         }
     };
 }
 impl Root {
+    pub fn not_inode_0(&self) -> bool {
+        self.dot_inode != 0
+    }
     pub fn validate(&self, bs: u16) -> bool {
         let drec = self.dot_rec_len;
         validate_field!(drec, 12);
@@ -108,47 +116,13 @@ pub struct RootInfo {
                           * otherwise. */
     unused_flags: u8, //
 }
-use crate::headers::hash;
 
 impl RootInfo {
     pub fn hash_version(&self) -> hash_versions::HashVer {
         hash_versions::VAL_TO_ENUM[self.hash_version as usize].clone()
     }
 }
-pub mod hash_versions {
-    // tf whats up with these hash algorithms
-    pub const SLEGACY: u8 = 0;
-    pub const SHALF_MD4: u8 = 1; // <- 2 step collision attack
-    pub const STEA: u8 = 2; // xbox hack
-    pub const ULEGACY: u8 = 3; // I guess they're not for security
-    pub const UHALF_MD4: u8 = 4; // maybe they're fast
-    pub const UTEA: u8 = 5;
-    pub const SIPHASH: u8 = 6; // maybe this one's cool
 
-    // weird code noticed in the md4 implementation:
-    // x (u32) &= 0xFFFFFFFF;
-
-    #[derive(Clone, Debug)]
-    pub enum HashVer {
-        Legacy,
-        HalfMd4,
-        Tea,
-        ULegacy,
-        Utea,
-        UhalfMd4,
-        SipHash,
-    }
-
-    pub const VAL_TO_ENUM: [HashVer; 7] = [
-        HashVer::Legacy,
-        HashVer::HalfMd4,
-        HashVer::Tea,
-        HashVer::ULegacy,
-        HashVer::Utea,
-        HashVer::UhalfMd4,
-        HashVer::SipHash,
-    ];
-}
 impl RootInfo {
     pub fn validate(&self) -> bool {
         validate_field_lt!(
@@ -199,6 +173,9 @@ impl Entry {
     pub fn get_block(&self) -> u32 {
         self.block
     }
+    pub fn empty(&self) -> bool {
+        self.hash == 0 && self.block == 0
+    }
 }
 
 #[derive(Deserialize, Copy, Clone, Debug)]
@@ -208,15 +185,3 @@ pub struct Tail {
     csum: u32, /* uuid,htree index header, all indices
                 * that are in use, and tail block */
 }
-
-/* this is cute I like this code
-p = entries + 1;
-q = entries + count - 1;
-while (p <= q) {
-    m = p + (q - p) / 2;
-    if (dx_get_hash(m) > hash)
-        q = m - 1;
-    else
-        p = m + 1;
-}
-*/

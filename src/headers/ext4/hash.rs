@@ -6,8 +6,46 @@
 pub const DIR_SEED: [u32; 4] =
     [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476];
 
+pub mod hash_versions {
+    pub const SLEGACY: u8 = 0;
+    pub const SHALF_MD4: u8 = 1;
+    pub const STEA: u8 = 2;
+    pub const ULEGACY: u8 = 3;
+    pub const UHALF_MD4: u8 = 4;
+    pub const UTEA: u8 = 5;
+    pub const SIPHASH: u8 = 6;
+
+    #[derive(Clone, Debug)]
+    pub enum HashVer {
+        Legacy,
+        HalfMd4,
+        Tea,
+        ULegacy,
+        Utea,
+        UhalfMd4,
+        SipHash,
+    }
+
+    pub const VAL_TO_ENUM: [HashVer; 7] = [
+        HashVer::Legacy,
+        HashVer::HalfMd4,
+        HashVer::Tea,
+        HashVer::ULegacy,
+        HashVer::Utea,
+        HashVer::UhalfMd4,
+        HashVer::SipHash,
+    ];
+}
+
 pub mod dirhash {
-    pub fn create_dirhash(s: [u32; 4], filename: &str) -> (u32, u32) {
+    use super::super::hashdir::Root;
+    use super::hash_versions::HashVer;
+    use colored::*;
+    pub fn create_dirhash(
+        s: [u32; 4],
+        filename: &str,
+        root: &Root,
+    ) -> (u32, u32) {
         // md4 specific
         let mut seed: [u32; 4];
         if s == [0, 0, 0, 0] {
@@ -19,15 +57,24 @@ pub mod dirhash {
         let mut len = bytes.len();
         let mut input = [0u32; 8];
         let mut fnamep = 0;
-        loop {
-            println!("len:{}", len);
-            str_to_hashbuf(&filename[fnamep..], 8, &mut input);
-            super::mdfour::half_md4_transform(&mut seed, input);
-            if len < 32 {
-                break;
+        match root.hash_version() {
+            HashVer::UhalfMd4 | HashVer::HalfMd4 => loop {
+                println!("len:{}", len);
+                str_to_hashbuf(&filename[fnamep..], 8, &mut input);
+                super::mdfour::half_md4_transform(&mut seed, input);
+                if len < 32 {
+                    break;
+                }
+                len -= 32;
+                fnamep += 32;
+            },
+            _ => {
+                println!(
+                    "{:?}: {}",
+                    root.hash_version(),
+                    "Hash algorithm is not implemented".red(),
+                );
             }
-            len -= 32;
-            fnamep += 32;
         }
         (seed[1] & !1, seed[2])
     }

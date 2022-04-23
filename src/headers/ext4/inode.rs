@@ -167,7 +167,7 @@ impl Inode {
             ))
         );
         println!(
-            "huge inode?: {}",
+            "hugefile inode?: {}",
             print_bool(self.is_hugefile_inode())
         );
         println!(

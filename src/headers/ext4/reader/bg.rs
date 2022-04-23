@@ -38,8 +38,7 @@ impl Bg {
 
     pub fn get_inode_table_block(&self) -> u64 {
         let mut block: u64 =
-            self.b32.as_ref().unwrap().inode_table_lo
-                as u64;
+            self.b32.as_ref().unwrap().inode_table_lo as u64;
         match &self.b64 {
             Some(b) => {
                 block |= (b.inode_table_hi as u64) << 32;
@@ -50,12 +49,10 @@ impl Bg {
     }
     pub fn get_free_inodes_count(&self) -> u32 {
         let mut free_count =
-            self.b32.as_ref().unwrap().free_inodes_count_lo
-                as u32;
+            self.b32.as_ref().unwrap().free_inodes_count_lo as u32;
         match &self.b64 {
             Some(b) => {
-                free_count |=
-                    (b.free_inodes_count_hi as u32) << 16;
+                free_count |= (b.free_inodes_count_hi as u32) << 16;
             }
             None => {}
         }
@@ -80,24 +77,24 @@ impl Bg {
         }
         let block_table = self.get_inode_table_block();
         let bs = s.block_size_bytes();
-        let inode_table = get_offset_from_block_number(
-            start,
-            block_table,
-            bs,
-        ) as u64;
+        let inode_table =
+            get_offset_from_block_number(start, block_table, bs)
+                as u64;
         let inode_size = s.inode_size;
-        let node_count = s.inodes_per_group
-            - self.get_free_inodes_count();
+        let node_count =
+            s.inodes_per_group - self.get_free_inodes_count();
         if node_count != 0 {
             println!("found {} inodes", node_count);
         }
-        for j in 0..s.inodes_per_group
-            - self.get_free_inodes_count()
+        for j in 0..s.inodes_per_group - self.get_free_inodes_count()
         {
             let current_offset =
                 inode_table + inode_size as u64 * j as u64;
-            let inode = reader.read_header_from_offset::<ext4::inode::Inode>(current_offset);
-            //inode.print_fields();
+            let inode = reader
+                .read_header_from_offset::<ext4::inode::Inode>(
+                    current_offset,
+                );
+
             let mut ino = Ino {
                 start: current_offset,
                 id: (j + 1) + self.id * s.inodes_per_group,
@@ -107,30 +104,37 @@ impl Bg {
                 dirs: None,
                 seed: s.checksum_seed,
             };
+            println!(
+                "{}",
+                format!(
+                    "{} {}...",
+                    "Processing inode number:".blue(),
+                    ino.id
+                )
+            );
+            inode.print_fields();
+
             ino.populate_ext_attrs(reader, s, start);
             ino.populate_extents(reader, s, start);
             // doesn't differentiate between file content
             // and dirents yet
             if ino.id != s.journal_inum {
-                let cnt =
-                    ino.get_file_content(reader, s, start);
+                let cnt = ino.get_file_content(reader, s, start);
                 if cnt.len() > 0 && cnt.len() < 0x1000 {
-                    println!("Inode number: {}", ino.id);
                     if cnt.len() > 0x100 {
                         //println!("{:X?}", &cnt[..100]);
                     }
-                    let cont =
-                        String::from_utf8_lossy(&cnt);
+                    let cont = String::from_utf8_lossy(&cnt);
                     println!(
                         "Content:{}, {}",
                         cont.len(),
                         format!("{}", cont.green())
                     );
                 }
+                ino.get_directory_entries(reader, s, start);
             }
             ino.set_inode_checksum_seed(s);
             ino.validate_checksum(reader, s);
-            ino.get_directory_entries(reader, s, start);
 
             self.ino.push(ino);
         }

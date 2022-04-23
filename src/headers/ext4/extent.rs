@@ -172,8 +172,6 @@ impl ExtentTree {
                 let leaf = reader::read_header_from_bytes::<ExtentLeaf>(
                     &block[sz_hdr + i * leaf_size..],
                 );
-                //println!("b:{:x} l:{:x}", leaf.ee_block,
-                // leaf.ee_len);
                 if leaf.all_zero() {
                     //println!("empty leaf");
                 }
@@ -192,10 +190,6 @@ impl ExtentTree {
                     reader::read_header_from_bytes::<ExtentNode>(
                         &block[sz_hdr + i * node_size..],
                     );
-                // println!(
-                //     "{:x} {:x} {:x}",
-                //     branch.ei_block, branch.ei_leaf_lo,
-                // branch.ei_leaf_hi );
 
                 branches.push(branch);
             }
@@ -258,7 +252,7 @@ impl ExtentTree {
         fblock: u32,
     ) -> Option<ExtentLeaf> {
         println!(
-            "finding {} in subtrees {:x}",
+            "finding fblock {} in subtrees {:x}",
             fblock,
             self.subtrees.len()
         );
