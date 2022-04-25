@@ -2,10 +2,10 @@ use purd::headers::exfat;
 use purd::headers::ext4::superblock::Superblock;
 use purd::headers::gpt::partitions::PartitionEntry;
 use purd::headers::gpt::*;
-use purd::headers::hash::mdfour;
 use purd::headers::mbr::*;
 use purd::headers::reader;
 
+/* low-quality semi-useless tests. */
 #[test]
 fn test_md4() {
     /*
@@ -24,6 +24,10 @@ fn test_md4() {
         md4.update(&[]);
         let mut hash = md4.finalize();
     */
+    // I grabbed these validation strings from the RFC but
+    // the ext4 half-md4 implementation isn't the same
+    // as the full version in the RFC. I leave these as a monument
+    // to the time I lost figuring that out.
 }
 
 #[test]

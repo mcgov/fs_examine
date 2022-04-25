@@ -4,25 +4,27 @@ use lazy_static::lazy_static;
 use std::collections::HashMap;
 use uuid::Uuid;
 
+/* would write this differently if I did it again */
 lazy_static! {
-    pub static ref GUID_TYPE_ENUM_MAP: HashMap<Uuid, PartitionType> = HashMap::from([
-        (
-            uuid!("00000000-0000-0000-0000-000000000000"),
-            PartitionType::Unused
-        ),
-        (
-            uuid!("C12A7328-F81F-11D2-BA4B-00A0C93EC93B"),
-            PartitionType::EfiSystem,
-        ),
-        (
-            uuid!("21686148-6449-6E6F-744E-656564454649"),
-            PartitionType::BiosBoot,
-        ),
-        (
-            uuid!("0FC63DAF-8483-4772-8E79-3D69D8477DE4"),
-            PartitionType::LinuxFsTBD,
-        )
-    ]);
+    pub static ref GUID_TYPE_ENUM_MAP: HashMap<Uuid, PartitionType> =
+        HashMap::from([
+            (
+                uuid!("00000000-0000-0000-0000-000000000000"),
+                PartitionType::Unused
+            ),
+            (
+                uuid!("C12A7328-F81F-11D2-BA4B-00A0C93EC93B"),
+                PartitionType::EfiSystem,
+            ),
+            (
+                uuid!("21686148-6449-6E6F-744E-656564454649"),
+                PartitionType::BiosBoot,
+            ),
+            (
+                uuid!("0FC63DAF-8483-4772-8E79-3D69D8477DE4"),
+                PartitionType::LinuxFsTBD,
+            )
+        ]);
 }
 lazy_static! {
     pub static ref GUID_TYPE_MAP: HashMap<Uuid, &'static str> = HashMap::from([

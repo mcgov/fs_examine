@@ -3,7 +3,8 @@ use crate::headers::reader::*;
 use crate::headers::*;
 use colored::*;
 
-/* I don't care that nobody uses disks anymore I'm calling it this to justify the name of the exe */
+/* I don't care that nobody uses disks anymore I'm calling it this
+ * to justify the name of the exe */
 #[derive(Debug)]
 pub struct Disk {
     pub pt_type: PartitionTableType,
@@ -42,17 +43,26 @@ pub struct Partition {
 }
 
 impl Partition {
-    pub fn check_linux_fs_type(&self, reader: &mut OnDisk) -> PartitionType {
-        // really wish I could loop on types, this might be macro-able though once I need to
+    pub fn check_linux_fs_type(
+        &self,
+        reader: &mut OnDisk,
+    ) -> PartitionType {
+        // really wish I could loop on types, this might be macro-able
+        // though once I need to
 
-        let sb = reader.read_header_from_offset::<ext4::superblock::Superblock>(
+        let sb = reader
+            .read_header_from_offset::<ext4::superblock::Superblock>(
+                self.p_offset + constants::EXT4_SUPERBLOCK_0_OFFSET,
+            );
+        if sb.check_magic_field(
+            reader,
             self.p_offset + constants::EXT4_SUPERBLOCK_0_OFFSET,
-        );
-        if sb.check_magic_field(reader, self.p_offset + constants::EXT4_SUPERBLOCK_0_OFFSET) {
+        ) {
             return PartitionType::Ext4;
         }
         return PartitionType::LinuxFsTBD;
-        //let xfs = read::read_header_from_offset::<xfs::ondiskhdr::XfsOndiskHeader> when implemented
+        //let xfs = read::read_header_from_offset::<xfs::ondiskhdr::
+        // XfsOndiskHeader> when implemented
     }
     pub fn get_partition_bitness(&self, reader: &mut OnDisk) -> u16 {
         match self.p_type {
@@ -86,11 +96,17 @@ impl Disk {
     }
 
     pub fn get_gpt(&mut self) -> gpt::Gpt {
-        assert_eq!(matches!(self.pt_type, PartitionTableType::Gpt), true);
-        let gpt = self
-            .reader
-            .read_header_from_offset::<gpt::Gpt>(constants::SMOL_BLOCKS);
-        if !gpt.check_magic_field(&mut self.reader, constants::SMOL_BLOCKS) {
+        assert_eq!(
+            matches!(self.pt_type, PartitionTableType::Gpt),
+            true
+        );
+        let gpt = self.reader.read_header_from_offset::<gpt::Gpt>(
+            constants::SMOL_BLOCKS,
+        );
+        if !gpt.check_magic_field(
+            &mut self.reader,
+            constants::SMOL_BLOCKS,
+        ) {
             panic!("This was not a GPT partition!");
         }
         //gpt.print_partition_table(&self.file_arg);
@@ -100,13 +116,16 @@ impl Disk {
         match self.pt_type {
             PartitionTableType::Gpt => {
                 let gpt = self.get_gpt();
-                let comparison = summer::struct_validate_checksum32::<gpt::Gpt>(
-                    &mut self.reader,
-                    &gpt,
-                    "GPT:header",
-                    constants::SMOL_BLOCKS,
-                );
-                return comparison && gpt.validate_table_checksums(&mut self.reader);
+                let comparison =
+                    summer::struct_validate_checksum32::<gpt::Gpt>(
+                        &mut self.reader,
+                        &gpt,
+                        "GPT:header",
+                        constants::SMOL_BLOCKS,
+                    );
+                return comparison
+                    && gpt
+                        .validate_table_checksums(&mut self.reader);
             }
             PartitionTableType::Mbr => {
                 // self.mbr fe
@@ -119,21 +138,33 @@ impl Disk {
         match self.pt_type {
             PartitionTableType::Gpt => {
                 let gpt = self.get_gpt();
-                for partition in gpt.create_partition_table(&mut self.reader) {
+                for partition in
+                    gpt.create_partition_table(&mut self.reader)
+                {
                     let mut part = Partition {
                         p_type: partition.get_partition_type(),
-                        p_offset: partition.first_lba * constants::SMOL_BLOCKS,
-                        p_size: (partition.last_lba - partition.first_lba) * constants::SMOL_BLOCKS,
+                        p_offset: partition.first_lba
+                            * constants::SMOL_BLOCKS,
+                        p_size: (partition.last_lba
+                            - partition.first_lba)
+                            * constants::SMOL_BLOCKS,
                         p_name: partition.name(),
                     };
-                    if matches!(part.p_type, PartitionType::LinuxFsTBD) {
-                        part.p_type = part.check_linux_fs_type(&mut self.reader)
+                    if matches!(
+                        part.p_type,
+                        PartitionType::LinuxFsTBD
+                    ) {
+                        part.p_type =
+                            part.check_linux_fs_type(&mut self.reader)
                     }
                     self.partitions.push(part);
                 }
             }
             _ => {
-                panic!("Partition table type not implemented: {:?}", self.pt_type);
+                panic!(
+                    "Partition table type not implemented: {:?}",
+                    self.pt_type
+                );
             }
         }
     }
@@ -142,11 +173,9 @@ impl Disk {
         for part in self.partitions.clone().into_iter() {
             if !matches!(part.p_type, PartitionType::Unused) {
                 println!(
-                    "PartitionName:{}\n\
-                    PartitionType:{:?}\n\
-                    PartitionStart:0x{:X}\n\
-                    PartitionSize:0x{:X}\n\
-                    ---------------------------",
+                    "PartitionName:{}\nPartitionType:{:?}\\
+                     nPartitionStart:0x{:X}\nPartitionSize:0x{:X}\\
+                     n---------------------------",
                     part.p_name.yellow(),
                     part.p_type,
                     part.p_offset,
@@ -159,7 +188,8 @@ impl Disk {
     pub fn print_partitions_pretty(&mut self) {
         match &self.pt_type {
             PartitionTableType::Gpt => {
-                self.get_gpt().print_partition_table(&mut self.reader);
+                self.get_gpt()
+                    .print_partition_table(&mut self.reader);
             }
             PartitionTableType::Mbr => {
                 self.mbr.pretty_print();
@@ -171,16 +201,26 @@ impl Disk {
         return self.partitions.get(ptid).unwrap().clone();
     }
 
-    pub fn make_ext4_block_reader(&mut self, p: Partition) -> ext4::reader::Part {
+    pub fn make_ext4_block_reader(
+        &mut self,
+        p: Partition,
+    ) -> ext4::reader::Part {
         assert!(matches!(p.p_type, PartitionType::Ext4));
         let sb = self
             .reader
             .read_header_from_offset::<ext4::superblock::Superblock>(
                 p.p_offset + constants::EXT4_SUPERBLOCK_0_OFFSET,
             );
-        ext4::reader::Part::init(reader::new(&self.reader.file.clone()), sb, p.p_offset)
+        ext4::reader::Part::init(
+            reader::new(&self.reader.file.clone()),
+            sb,
+            p.p_offset,
+        )
     }
-    pub fn make_ext4_block_reader_by_index(&mut self, ptid: usize) -> ext4::reader::Part {
+    pub fn make_ext4_block_reader_by_index(
+        &mut self,
+        ptid: usize,
+    ) -> ext4::reader::Part {
         let part = self.get_partition(ptid);
         self.make_ext4_block_reader(part)
     }

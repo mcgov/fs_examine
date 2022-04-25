@@ -29,13 +29,17 @@ impl Mbr {
     pub fn pretty_print(&self) {
         prettify_output!(Mbr, purple, bright_purple, {
             println!(
-                "MBR (skipping bootstrap...) disk_sig: {:x?} reserved:{}",
+                "MBR (skipping bootstrap...) disk_sig: {:x?} \
+                 reserved:{}",
                 self.opt_disk_sig, self.opt_reserved,
             );
             for partition in self.partitions.iter() {
                 partition.pretty_print();
             }
-            println!("boot sector signature: {:x}", self.boot_sector_sig);
+            println!(
+                "boot sector signature: {:x}",
+                self.boot_sector_sig
+            );
         });
     }
 }
@@ -44,7 +48,8 @@ impl fmt::Debug for Mbr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "MBR {{ (bootstrap above) disk_sig: {:x?} reserved: {:#x?} boot sig: {:#x?} paritions: {:#x?}  }}",
+            "MBR {{ (bootstrap above) disk_sig: {:x?} reserved: \
+             {:#x?} boot sig: {:#x?} paritions: {:#x?}  }}",
             self.opt_disk_sig,
             self.opt_reserved,
             self.boot_sector_sig,
@@ -70,12 +75,15 @@ impl HasHeaderMagic for Mbr {
 
 #[derive(Deserialize, Clone, Copy)]
 pub struct MbrPartitionEntry {
-    pub attributes: u8,           // Drive attributes (bit 7 set = active or bootable)
+    pub attributes: u8, /* Drive attributes (bit 7 set = active or
+                         * bootable) */
     pub partition_start: [u8; 3], // CHS Address of partition start
     pub partition_type: u8,       //Partition type
-    pub last_partition_sector: [u8; 3], // CHS address of last partition sector
+    pub last_partition_sector: [u8; 3], /* CHS address of last
+                                   * partition sector */
     pub lba_of_partition_start: u32, // LBA of partition start
-    pub sectors_in_partition: u32, // Number of sectors in partition
+    pub sectors_in_partition: u32,   /* Number of sectors in
+                                      * partition */
 }
 
 impl MbrPartitionEntry {
@@ -85,15 +93,27 @@ impl MbrPartitionEntry {
         println!("{}", "Partitions:".purple().to_string());
         match PartitionId::from_u8(self.partition_type) {
             None => {
-                partition_label = "Unknown".bright_purple().to_string();
+                partition_label =
+                    "Unknown".bright_purple().to_string();
             }
             Some(x) => {
-                partition_label = format!("{:?}", x).bright_blue().to_string();
+                partition_label =
+                    format!("{:?}", x).bright_blue().to_string();
             }
         }
         println!(
             "{}",
-            format!("[{}] is_active: {}\nchs start: {:x?}\nchs last part sector: {:x?}\nlba of part start: {:x?}\nsectors in partition: {:x?}", partition_label, print_bool(active), self.partition_start, self.last_partition_sector,self.lba_of_partition_start, self.sectors_in_partition)
+            format!(
+                "[{}] is_active: {}\nchs start: {:x?}\nchs last \
+                 part sector: {:x?}\nlba of part start: \
+                 {:x?}\nsectors in partition: {:x?}",
+                partition_label,
+                print_bool(active),
+                self.partition_start,
+                self.last_partition_sector,
+                self.lba_of_partition_start,
+                self.sectors_in_partition
+            )
         );
     }
     pub fn get_partition_type(&self) -> PartitionId {
@@ -121,7 +141,18 @@ impl fmt::Debug for MbrPartitionEntry {
                 partition_label = format!("{:?}", x);
             }
         }
-        write!(f, "MbrPartitionEntry: (hex) {{ is_active: {:x?} chs start: {:x?} type: {:x?} chs last part sector: {:x?} lba of part start: {:x?} sectors in partition: {:x?}", active, self.partition_start,partition_label, self.last_partition_sector,self.lba_of_partition_start, self.sectors_in_partition)
+        write!(
+            f,
+            "MbrPartitionEntry: (hex) {{ is_active: {:x?} chs \
+             start: {:x?} type: {:x?} chs last part sector: {:x?} \
+             lba of part start: {:x?} sectors in partition: {:x?}",
+            active,
+            self.partition_start,
+            partition_label,
+            self.last_partition_sector,
+            self.lba_of_partition_start,
+            self.sectors_in_partition
+        )
     }
 }
 
@@ -134,7 +165,7 @@ pub enum PartitionId {
     Ebr = 5,
     Fat16b = 6,
     NtfsAlsoExfat = 7,
-    OldBullshit = 8,
+    OldNonsense = 8,
     AixQnx = 9,
     Os2Bm = 0xa,
     Fat32Chs = 0xB,
@@ -143,7 +174,7 @@ pub enum PartitionId {
     Fat16Lba = 0xe,
     EbrLba = 0xf,
     Fat12Fat16Logical = 0x11,
-    ShitOemPartition = 0x12,
+    SomeOemPartition = 0x12,
     WindowsServiceFs = 0x27,
     LynxRtos = 0x50,
     YocFs = 0x59,
@@ -155,7 +186,8 @@ pub enum PartitionId {
     AppleUfs = 0xa8,
     AppleBoot = 0xAB,
     AppleRaid = 0xAc,
-    Gpt = 0xEE, // if this is the type we just ignore all the other shit in the MBR.
+    Gpt = 0xEE, /* if this is the type we just ignore all the
+                 * other purd in the MBR. */
     WindowsGptSafeMbr = 0xEF,
     LinuxExt3Pache = 0xFD,
     Unknown,

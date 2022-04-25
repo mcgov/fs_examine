@@ -147,8 +147,8 @@ pub mod mdfour {
     use md4::{Digest, Md4};
 
     const K1: u32 = 0;
-    const K2: u32 = 0x5a827999; // constants in linux source was octal
-    const K3: u32 = 0x6ed9eba1;
+    const K2: u32 = 0x5a827999; // ext4 specific constants
+    const K3: u32 = 0x6ed9eba1; // they're in octal in the source for some reason
 
     fn efph(x: u32, y: u32, z: u32) -> u32 {
         (z) ^ ((x) & ((y) ^ (z)))
@@ -175,7 +175,8 @@ pub mod mdfour {
     }
     /*
      * Ext4 half-MD4 transform.  Returns only 32 bits of
-     * result.
+     * result. Credit to Theodore Ts'o for the implementation
+     * in the linux source.
      */
 
     pub fn half_md4_transform(
@@ -196,7 +197,6 @@ pub mod mdfour {
         round(efph, &mut c, d, a, b, (data[6]).wrapping_add(K1), 11);
         round(efph, &mut b, c, d, a, (data[7]).wrapping_add(K1), 19);
         /* Round 2 */
-        //println!("-----------------------------");
         round(geez, &mut a, b, c, d, (data[1]).wrapping_add(K2), 3);
         round(geez, &mut d, a, b, c, (data[3]).wrapping_add(K2), 5);
         round(geez, &mut c, d, a, b, (data[5]).wrapping_add(K2), 9);
@@ -206,8 +206,6 @@ pub mod mdfour {
         round(geez, &mut c, d, a, b, (data[4]).wrapping_add(K2), 9);
         round(geez, &mut b, c, d, a, (data[6]).wrapping_add(K2), 13);
         /* Round 3 */
-        //println!("-----------------------------");
-
         round(eych, &mut a, b, c, d, (data[3]).wrapping_add(K3), 3);
         round(eych, &mut d, a, b, c, (data[7]).wrapping_add(K3), 9);
         round(eych, &mut c, d, a, b, (data[2]).wrapping_add(K3), 11);
@@ -220,7 +218,7 @@ pub mod mdfour {
         seed[1] = seed[1].wrapping_add(b);
         seed[2] = seed[2].wrapping_add(c);
         seed[3] = seed[3].wrapping_add(d);
-        return seed[1]; /* "most hashed" word */
+        return seed[1];
         // ext4 stores 1 and 2 as major and minor hash
     }
 }

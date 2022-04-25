@@ -17,12 +17,16 @@ pub enum Endianness {
     Big,
     Little,
 }
+
+/* container for the bufreader */
+
 #[derive(Debug)]
 pub struct OnDisk {
     pub file: String,
     pub reader: BufReader<File>,
 }
 
+/* convert lba/fileblock/etc to bytes from an offset */
 pub fn get_offset_from_block_number(
     block_0: u64,
     index: u64,
@@ -44,8 +48,6 @@ impl OnDisk {
         offset: u64,
         size: u64,
     ) -> Vec<u8> {
-        //let output = format!("Reading from 0x{:X}", offset).yellow();
-        //println!("{}", output);
         let res =
             self.reader.seek(SeekFrom::Start(offset as u64)).unwrap();
         if res != offset {

@@ -6,7 +6,7 @@ use serde::Deserialize;
 // __(le|u)([0-9]+)\s+([a-z_]+)(.*)
 //pub $3 : u$2, //$4
 
-// This shit is variable length depending on the bitness
+// This is variable length depending on the bitness
 
 #[derive(Debug, Deserialize, Copy, Clone)]
 #[repr(packed)]

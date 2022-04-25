@@ -20,7 +20,7 @@ enciphered anything
 big attrs
 huge inodes
 reading stuff in 'extrasize' after inode
-reading extended attrs values
+reading extended attrs values (can read keys)
 reading the journal
 inline data in inodes
 META-BGs

@@ -7,16 +7,16 @@ use serde_big_array::BigArray;
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 #[repr(packed)]
 pub struct Inode {
-    pub mode: u16,              //
-    pub uid: u16,               // 	Lower 16-bits of Owner UID.
-    pub size_lo: u32,           // 	Lower 32-bits of size in bytes.
-    pub atime: u32,             /* 	Last access time, in seconds
-                                 * since the epoch. However, if
-                                 * the EA_INODE inode flag is set,
-                                 * this inode stores an extended
-                                 * attribute value and this field
-                                 * contains the checksum of the
-                                 * value. */
+    pub mode: u16,    //
+    pub uid: u16,     // 	Lower 16-bits of Owner UID.
+    pub size_lo: u32, // 	Lower 32-bits of size in bytes.
+    pub atime: u32,   /* 	Last access time, in seconds
+                       * since the epoch. However, if
+                       * the EA_INODE inode flag is set,
+                       * this inode stores an extended
+                       * attribute value and this field
+                       * contains the checksum of the
+                       * value. */
     pub ctime: u32, /* Last inode change time, in seconds since
                      * the epoch. However, if the EA_INODE inode
                      * flag is set, this inode stores an extended
@@ -62,13 +62,13 @@ pub struct Inode {
                                  * map or extent tree. See the
                                  * section "The Contents of
                                  * inode.block". */
-    pub generation: u32,  // 	File version (for NFS).
+    pub generation: u32, // 	File version (for NFS).
     pub file_acl_lo: u32, /* 	Lower 32-bits of extended attribute
-                           * block. ACLs are of course one of many
-                           * possible extended attributes; I think
-                           * the name of this field is a result of
-                           * the first use of extended attributes
-                           * being for ACLs. */
+                          * block. ACLs are of course one of many
+                          * possible extended attributes; I think
+                          * the name of this field is a result of
+                          * the first use of extended attributes
+                          * being for ACLs. */
     pub size_hi: u32, /* aka dir_acl 	Upper 32-bits of
                        * file/directory size. In ext2/3 this field
                        * was named dir_acl, though it was usually
@@ -86,9 +86,9 @@ pub struct Inode {
     pub checksum_lo: u16, // 	Lower 16-bits of the inode checksum.
     pub reserved: u16, // 	Unused.
     pub extra_isize: u16, /* 	Size of this inode - 128.
-                           * Alternately, the size of the extended
-                           * inode fields beyond the original ext2
-                           * inode, including this field. */
+                      * Alternately, the size of the extended
+                      * inode fields beyond the original ext2
+                      * inode, including this field. */
     pub checksum_hi: u16, // 	Upper 16-bits of the inode checksum.
     pub ctime_extra: u32, /* 	Extra change time bits. This provides
                            * sub-second precision. See Inode
@@ -190,7 +190,7 @@ impl Inode {
     }
 
     pub fn uses_hash_tree_directories(&self) -> bool {
-        bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_INDEX) //whats up w this flag name btw
+        bitfield_fetch::<u32>(self.flags, attr_bitflags::EXT4_INDEX) //hashed dir flag is called 'index'
     }
 
     pub fn regular_file(&self) -> bool {

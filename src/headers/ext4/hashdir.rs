@@ -181,6 +181,7 @@ impl Entry {
 #[derive(Deserialize, Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct Tail {
+    /// FIXME: not used to validate yet
     reserved: u32,
     csum: u32, /* uuid,htree index header, all indices
                 * that are in use, and tail block */

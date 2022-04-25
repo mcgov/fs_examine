@@ -18,9 +18,10 @@ pub struct Superblock {
                                * in file system */
     pub r_blocks_count_lo: u32, //Number of reserved
     // blocks
-    pub free_blocks_count_lo: u32, /* Total number of unallocated blocks */
-    pub free_inodes_count: u32,    /* Total number of
-                                    * unallocated inodes */
+    pub free_blocks_count_lo: u32, /* Total number of unallocated
+                                    * blocks */
+    pub free_inodes_count: u32, /* Total number of
+                                 * unallocated inodes */
     pub superblock: u32, /* Block number of the block
                           * containing the superblock.
                           * This is 1 on 1024 byte block
@@ -39,16 +40,19 @@ pub struct Superblock {
                                 * size) */
     pub blocks_per_group: u32, /* Number of blocks in
                                 * each block group */
-    pub clusters_per_group: u32, /* Number of fragments in each block group */
-    pub inodes_per_group: u32,   /* Number of inodes in
-                                  * each block group */
+    pub clusters_per_group: u32, /* Number of fragments in each
+                                  * block group */
+    pub inodes_per_group: u32, /* Number of inodes in
+                                * each block group */
     pub mount_time: u32, //Last mount time (in POSIX time)
     pub last_write_time: u32, /* Last written time (in POSIX
                           * time) */
-    pub mnt_count: u16, /* Number of times the volume has been mounted since its last consistency check (fsck) */
+    pub mnt_count: u16, /* Number of times the volume has been
+                         * mounted since its last consistency
+                         * check (fsck) */
     pub max_mnt_count: u16, /* Number of mounts allowed
-                         * before a consistency check
-                         * (fsck) must be done */
+                             * before a consistency check
+                             * (fsck) must be done */
     pub magic: u16, /* Magic signature (0xef53), used to
                      * help confirm the presence of Ext4
                      * on a volume */
@@ -122,14 +126,15 @@ pub struct Superblock {
     pub last_mounted: [u8; 64], /* Directory where
                          * filesystem was last
                          * mounted. */
-    pub algorithm_usage_bitmap: u32, /* For compression (Not used in e2fsprogs/Linux) */
-    pub prealloc_blocks: u8,         /* 	# of blocks to
-                                      * try to
-                                      * preallocate for
-                                      * ...
-                                      * files? (Not used
-                                      * in
-                                      * e2fsprogs/Linux) */
+    pub algorithm_usage_bitmap: u32, /* For compression (Not used
+                                      * in e2fsprogs/Linux) */
+    pub prealloc_blocks: u8, /* 	# of blocks to
+                              * try to
+                              * preallocate for
+                              * ...
+                              * files? (Not used
+                              * in
+                              * e2fsprogs/Linux) */
     pub prealloc_dir_blocks: u8, /* 	# of blocks to
                                   * preallocate for
                                   * directories. (Not
@@ -184,9 +189,10 @@ pub struct Superblock {
     */
     pub blocks_count_hi: u32, /* High 32-bits of the
                                * block count. */
-    pub r_blocks_count_hi: u32, /* High 32-bits of the reserved block count. */
+    pub r_blocks_count_hi: u32, /* High 32-bits of the reserved
+                                 * block count. */
     pub free_blocks_count_hi: u32, /* High 32-bits of the
-                                 * free block count. */
+                                    * free block count. */
     pub min_extra_isize: u16, /* All inodes have at
                                * least # bytes. */
     pub want_extra_isize: u16, /* New inodes should
@@ -240,13 +246,16 @@ pub struct Superblock {
     pub snapshot_id: u32, /* Sequential ID of active
                            * snapshot. (Not used in
                            * e2fsprogs/Linux.) */
-    pub snapshot_r_blocks_count: u64, /* Number of blocks reserved for active snapshot's future use. (Not used in e2fsprogs/Linux.) */
-    pub snapshot_list: u32,           /* inode number of
-                                       * the head of the
-                                       * on-disk snapshot
-                                       * list. (Not used
-                                       * in e2fsprogs/
-                                       * Linux.) */
+    pub snapshot_r_blocks_count: u64, /* Number of blocks reserved
+                                       * for active snapshot's
+                                       * future use. (Not used in
+                                       * e2fsprogs/Linux.) */
+    pub snapshot_list: u32, /* inode number of
+                             * the head of the
+                             * on-disk snapshot
+                             * list. (Not used
+                             * in e2fsprogs/
+                             * Linux.) */
     pub error_count: u32, // Number of errors seen.
     pub first_error_time: u32, /* First time an error
                            * happened, in seconds since
@@ -266,10 +275,11 @@ pub struct Superblock {
                                * the epoch. */
     pub last_error_ino: u32, /* inode involved in most
                               * recent error. */
-    pub last_error_line: u32, /* Line number where most recent error happened. */
+    pub last_error_line: u32, /* Line number where most recent
+                               * error happened. */
     pub last_error_block: u64, /* Number of block
-                               * involved in most recent
-                               * error. */
+                                * involved in most recent
+                                * error. */
     pub last_error_func: [u8; 32], /* Name of function
                                     * where the most
                                     * recent error
@@ -316,11 +326,9 @@ pub struct Superblock {
 
 impl Superblock {
     pub fn number_of_blocks(&self) -> u64 {
-        let mut total_blocks: u64 =
-            self.blocks_count_lo as u64;
+        let mut total_blocks: u64 = self.blocks_count_lo as u64;
         if self.uses_64bit() {
-            total_blocks |=
-                (self.blocks_count_hi as u64) << 32;
+            total_blocks |= (self.blocks_count_hi as u64) << 32;
         }
         total_blocks
     }
@@ -330,8 +338,7 @@ impl Superblock {
     }
 
     pub fn number_of_groups(&self) -> u64 {
-        self.number_of_blocks()
-            / self.blocks_per_group as u64
+        self.number_of_blocks() / self.blocks_per_group as u64
     }
     pub fn number_of_bytes(&self) -> u64 {
         self.number_of_blocks() * self.block_size_bytes()
@@ -348,34 +355,24 @@ impl Superblock {
     }
 
     pub fn volume_name(&self) -> String {
-        std::string::String::from_utf8(
-            self.volume_name.to_vec(),
-        )
-        .unwrap()
+        std::string::String::from_utf8(self.volume_name.to_vec())
+            .unwrap()
     }
     pub fn mount_opts(&self) -> String {
-        std::string::String::from_utf8(
-            self.mount_opts.to_vec(),
-        )
-        .unwrap()
+        std::string::String::from_utf8(self.mount_opts.to_vec())
+            .unwrap()
     }
     pub fn last_mounted(&self) -> String {
-        std::string::String::from_utf8(
-            self.last_mounted.to_vec(),
-        )
-        .unwrap()
+        std::string::String::from_utf8(self.last_mounted.to_vec())
+            .unwrap()
     }
     pub fn first_error_func(&self) -> String {
-        std::string::String::from_utf8(
-            self.first_error_func.to_vec(),
-        )
-        .unwrap()
+        std::string::String::from_utf8(self.first_error_func.to_vec())
+            .unwrap()
     }
     pub fn last_error_func(&self) -> String {
-        std::string::String::from_utf8(
-            self.last_error_func.to_vec(),
-        )
-        .unwrap()
+        std::string::String::from_utf8(self.last_error_func.to_vec())
+            .unwrap()
     }
 
     pub fn uses_64bit(&self) -> bool {
@@ -397,10 +394,7 @@ impl Superblock {
         )
     }
     pub fn uses_mmp(&self) -> bool {
-        bitfield_fetch(
-            self.feature_incompat,
-            breaks_compat::USES_MMP,
-        )
+        bitfield_fetch(self.feature_incompat, breaks_compat::USES_MMP)
     }
     pub fn uses_journal(&self) -> bool {
         bitfield_fetch(
@@ -441,179 +435,148 @@ impl Superblock {
     }
 
     pub fn debug_print_some_stuf(&self) {
-        prettify_output!(
-            Superblock,
-            purple,
-            bright_purple,
-            {
-                println!("{:x?}", self);
-                println!(
-                    "Inodes in use: {}",
-                    self.inodes_count
-                        - self.free_inodes_count
-                );
-                println!(
-                    "Blocks in use: {}",
-                    self.blocks_count_lo
-                        - self.free_blocks_count_lo
-                );
-                println!(
-                    "Blocks in use: {}",
-                    self.blocks_count_lo
-                        - self.free_blocks_count_lo
-                );
+        prettify_output!(Superblock, purple, bright_purple, {
+            println!("{:x?}", self);
+            println!(
+                "Inodes in use: {}",
+                self.inodes_count - self.free_inodes_count
+            );
+            println!(
+                "Blocks in use: {}",
+                self.blocks_count_lo - self.free_blocks_count_lo
+            );
+            println!(
+                "Blocks in use: {}",
+                self.blocks_count_lo - self.free_blocks_count_lo
+            );
 
-                println!(
-                    "volume name: {}",
-                    self.volume_name()
-                );
-                println!(
-                    "mount opts: {}",
-                    self.mount_opts()
-                );
-                println!(
-                    "last mounted: {}",
-                    self.last_mounted()
-                );
-                println!(
-                    "first_error: {}",
-                    self.first_error_func()
-                );
-                println!(
-                    "last check : {}",
-                    timestamp_to_string(
-                        self.last_check as u64
-                    )
-                );
-                println!(
-                    "Ext4 Dynamic rev?: {}",
-                    print_bool(
-                        self.version_major
-                            == constants::EXT4_DYNAMIC_REV
-                    )
-                );
-                println!(
-                    "64bit_support : {}",
-                    print_bool(self.uses_64bit())
-                );
-                println!(
-                    "Ext Attrs : {}",
-                    print_bool(self.uses_ext_attr())
-                );
-                println!(
-                    "Flex BG : {}",
-                    print_bool(self.uses_flex_bg())
-                );
-                println!(
-                    "FlexBG Size: val: {} size 0x{:X?}",
-                    self.log_groups_per_flex,
-                    self.flex_bg_size()
-                );
-                println!(
-                    "Metadata csum?:{}",
-                    print_bool(self.metadata_csum())
-                );
-                println!(
-                    "GDT csum?:{}",
-                    print_bool(self.has_feature_gdt_csum())
-                );
-                println!(
-                    "checksum seed??: {}",
-                    print_bool(
-                        self.has_feature_checksum_seed()
-                    )
-                );
-                println!("MMP : {}", self.uses_mmp());
-                println!(
-                    "Journal (internal) : {}",
-                    self.uses_journal()
-                );
+            println!("volume name: {}", self.volume_name());
+            println!("mount opts: {}", self.mount_opts());
+            println!("last mounted: {}", self.last_mounted());
+            println!("first_error: {}", self.first_error_func());
+            println!(
+                "last check : {}",
+                timestamp_to_string(self.last_check as u64)
+            );
+            println!(
+                "Ext4 Dynamic rev?: {}",
+                print_bool(
+                    self.version_major == constants::EXT4_DYNAMIC_REV
+                )
+            );
+            println!(
+                "64bit_support : {}",
+                print_bool(self.uses_64bit())
+            );
+            println!(
+                "Ext Attrs : {}",
+                print_bool(self.uses_ext_attr())
+            );
+            println!("Flex BG : {}", print_bool(self.uses_flex_bg()));
+            println!(
+                "FlexBG Size: val: {} size 0x{:X?}",
+                self.log_groups_per_flex,
+                self.flex_bg_size()
+            );
+            println!(
+                "Metadata csum?:{}",
+                print_bool(self.metadata_csum())
+            );
+            println!(
+                "GDT csum?:{}",
+                print_bool(self.has_feature_gdt_csum())
+            );
+            println!(
+                "checksum seed??: {}",
+                print_bool(self.has_feature_checksum_seed())
+            );
+            println!("MMP : {}", self.uses_mmp());
+            println!("Journal (internal) : {}", self.uses_journal());
 
-                println!(
-                    "Uses EA Inode present?: {}",
-                    print_bool(bitfield_fetch::<u32>(
-                        self.feature_incompat,
-                        breaks_compat::USES_EA_INODE
-                    ))
-                );
-                println!(
-                    "Inline Data present?: {}",
-                    print_bool(bitfield_fetch::<u32>(
-                        self.feature_incompat,
-                        breaks_compat::USES_INLINE_DATA
-                    ))
-                );
-                println!(
+            println!(
+                "Uses EA Inode present?: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_incompat,
+                    breaks_compat::USES_EA_INODE
+                ))
+            );
+            println!(
+                "Inline Data present?: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_incompat,
+                    breaks_compat::USES_INLINE_DATA
+                ))
+            );
+            println!(
                 "ROCompat Extra Isize info present?: {}",
                 print_bool(bitfield_fetch::<u32>(
                     self.feature_ro_compat,
                     compat_readonly::RO_COMPAT_EXTRA_ISIZE
                 ))
-                );
-                println!(
-                    "Uses dirdata: {}",
-                    print_bool(bitfield_fetch::<u32>(
-                        self.feature_incompat,
-                        breaks_compat::USES_DIRDATA
-                    ))
-                );
-                println!(
-                    "FILETYPE flag set: {}",
-                    print_bool(bitfield_fetch::<u32>(
-                        self.feature_incompat,
-                        breaks_compat::USES_FILETYPE
-                    ))
-                );
-                println!(
-                    "META_BG flag set: {}",
-                    print_bool(bitfield_fetch::<u32>(
-                        self.feature_incompat,
-                        breaks_compat::USES_META_BG
-                    ))
-                );
-                println!(
-                    "External journal device?: {}",
-                    print_bool(bitfield_fetch::<u32>(
-                        self.feature_incompat,
-                        breaks_compat::USES_JOURNAL_DEV
-                    ))
-                );
+            );
+            println!(
+                "Uses dirdata: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_incompat,
+                    breaks_compat::USES_DIRDATA
+                ))
+            );
+            println!(
+                "FILETYPE flag set: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_incompat,
+                    breaks_compat::USES_FILETYPE
+                ))
+            );
+            println!(
+                "META_BG flag set: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_incompat,
+                    breaks_compat::USES_META_BG
+                ))
+            );
+            println!(
+                "External journal device?: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_incompat,
+                    breaks_compat::USES_JOURNAL_DEV
+                ))
+            );
 
-                println!(
+            println!(
                 "Huge Inodes?: {}",
                 print_bool(bitfield_fetch::<u32>(
                     self.feature_compat,
                     compat_readonly::RO_COMPAT_HUGE_FILE
                 ))
-                );
+            );
 
-                println!(
-                    "HTREE dir indexes??: {}",
-                    print_bool(bitfield_fetch::<u32>(
-                        self.feature_compat,
-                        compat_bitflags::COMPAT_DIR_INDEX
-                    ))
-                );
-                println!(
-                    "LARGE_DIR?: {}",
-                    print_bool(bitfield_fetch::<u32>(
-                        self.feature_compat,
-                        breaks_compat::USES_LARGEDIR
-                    ))
-                );
-                println!(
-                    "USES_ENCRYPT?: {}",
-                    print_bool(bitfield_fetch::<u32>(
-                        self.feature_compat,
-                        breaks_compat::USES_ENCRYPT
-                    ))
-                );
-                println!(
-                    "EXT4 BlockSize (decimal): {}",
-                    self.block_size_bytes()
-                );
-            }
-        );
+            println!(
+                "HTREE dir indexes??: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_compat,
+                    compat_bitflags::COMPAT_DIR_INDEX
+                ))
+            );
+            println!(
+                "LARGE_DIR?: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_compat,
+                    breaks_compat::USES_LARGEDIR
+                ))
+            );
+            println!(
+                "USES_ENCRYPT?: {}",
+                print_bool(bitfield_fetch::<u32>(
+                    self.feature_compat,
+                    breaks_compat::USES_ENCRYPT
+                ))
+            );
+            println!(
+                "EXT4 BlockSize (decimal): {}",
+                self.block_size_bytes()
+            );
+        });
     }
 }
 impl fs::DiskPart for Superblock {
@@ -664,7 +627,16 @@ pub mod compat_bitflags {
                                                   // presence of snapshot-related exclude bitmaps? Not
                                                   // defined in kernel or used in e2fsprogs.
                                                   // (COMPAT_EXCLUDE_BITMAP).
-    pub const COMPAT_SPARSE_SUPER2: u32 = 0x200; // 	Sparse Super Block, v2. If this flag is set, the SB field s_backup_bgs points to the two block groups that contain backup superblocks. (COMPAT_SPARSE_SUPER2).
+    pub const COMPAT_SPARSE_SUPER2: u32 = 0x200; // 	Sparse Super
+                                                 // Block, v2. If this
+                                                 // flag is set, the
+                                                 // SB field s_backup_bgs
+                                                 // points to the two
+                                                 // block groups that
+                                                 // contain backup
+                                                 // superblocks.
+                                                 // (COMPAT_SPARSE_SUPER2).
+                                                 //
 }
 pub mod compat_readonly {
     // Readonly-compatible feature set. If the kernel
@@ -713,9 +685,7 @@ pub mod breaks_compat {
     //NOTE: linux names these INCOMPAT_ which confuses my
     // puny brain. The flag is set when the feature is
     // present,if the FS doesn't support it, it will fail to
-    // mount. I'm naming them USES because I have to
-    // read them when I'm tired. Actual docs not
-    // follows: Incompatible feature set. If the kernel or
+    // mount. Incompatible feature set. If the kernel or
     // e2fsck doesn't understand one of these bits, it will
     // refuse to mount or attempt to repair the filesystem.
     // Any of:
@@ -798,7 +768,8 @@ pub mod cipher_bitflags {
     pub const ENCRYPTION_MODE_INVALID: u32 = 0; // 	Invalid algorithm .
     pub const ENCRYPTION_MODE_AES_256_XTS: u32 = 1; // 	256-bit AES in XTS mode .
     pub const ENCRYPTION_MODE_AES_256_GCM: u32 = 2; // 	256-bit AES in GCM mode .
-    pub const ENCRYPTION_MODE_AES_256_CBC: u32 = 3; // 	256-bit AES in CBC mode .
+    pub const ENCRYPTION_MODE_AES_256_CBC: u32 = 3; // 	256-bit AES in
+                                                    // CBC mode .
 }
 
 impl HasHeaderMagic for Superblock {
