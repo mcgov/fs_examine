@@ -9,7 +9,7 @@ use std::fmt;
 use uuid::Uuid;
 
 /*
-GPT is also little endian. (according to apple, anyway)
+GPT is also little endian.
 https://developer.apple.com/library/archive/technotes/tn2166/_index.html#//apple_ref/doc/uid/DTS10003927-CH1-SECTION2
 
 */
