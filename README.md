@@ -6,6 +6,8 @@ some information about the disk. MBR and GPT partition tables are supported.
 
 Ext4 is the most supported fs type but is probably only around 30% complete. There is a README under the headers::ext4 directory with some notes on progress.
 
-## It's a Published Utility for Reading Disks.
-## Pure PURDfection. A purdfolio purdject for job apPlURDcations
+### It's a Published Utility for Reading Disks.
+_Pure PURDfection._
+
+_<sub><sup>A PURDfolio PURDject for job apPlURDcations<sub><sup>_
 
