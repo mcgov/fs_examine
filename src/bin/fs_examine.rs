@@ -1,30 +1,19 @@
-use purd::headers::fs::disk;
-use purd::headers::mbr;
-use purd::headers::reader;
+use fs_examine::headers::fs::disk;
+use fs_examine::headers::mbr;
+use fs_examine::headers::reader;
 use std::env;
-
-/* =============================================== #
-██████╗ ██╗   ██╗██████╗ ██████╗
-██╔══██╗██║   ██║██╔══██╗██╔══██╗
-██████╔╝██║   ██║██████╔╝██║  ██║
-██╔═══╝ ██║   ██║██╔══██╗██║  ██║
-██║     ╚██████╔╝██║  ██║██████╔╝
-╚═╝      ╚═════╝ ╚═╝  ╚═╝╚═════╝
-Haven't you PURD? PUrd Reads Disks!
-It's a Published Utility for Reading Disks.
-Pure PURDfection. A purdfolio purdject for job apPlURDcations
-#FIXME: add more PURD taglines
-*/
+// fs_examine
+// look at what's on some kinds of disk like devices
 
 fn main() {
 	let file_arg = env::args().nth(1);
 	match file_arg {
 		Some(_) => {
-			println!("Let's get PURD-ey!");
+			println!("Let's get fs_examine-ey!");
 		}
 		None => {
 			println!(
-				"usage: purd /dev/sdb \n(will fail on a disk \
+				"usage: fs_examine /dev/sdb \n(will fail on a disk \
 				 without an MBR or GPT, ext4 fs only at the moment)"
 			)
 		}

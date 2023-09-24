@@ -1,9 +1,9 @@
-use purd::headers::exfat;
-use purd::headers::ext4::superblock::Superblock;
-use purd::headers::gpt::partitions::PartitionEntry;
-use purd::headers::gpt::*;
-use purd::headers::mbr::*;
-use purd::headers::reader;
+use fs_examine::headers::exfat;
+use fs_examine::headers::ext4::superblock::Superblock;
+use fs_examine::headers::gpt::partitions::PartitionEntry;
+use fs_examine::headers::gpt::*;
+use fs_examine::headers::mbr::*;
+use fs_examine::headers::reader;
 
 /* low-quality semi-useless tests. */
 #[test]
